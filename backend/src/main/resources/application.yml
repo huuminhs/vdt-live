@@ -22,5 +22,4 @@ file:
   upload-dir: ./uploads
 
 jwt:
-  secret: JJPMaP8Jd9by2VQbdhVbXWeK0oNf67saGIgsjdsjdaiywudgfgsuydgasduyfgsduyg
   expiration: 86400000

@@ -1,8 +1,10 @@
 package com.huuminhs.backend.security;
 
 import com.nimbusds.jose.*;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +15,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Component;
 
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -20,11 +24,21 @@ import java.util.stream.Collectors;
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
-
     @Value("${jwt.expiration}")
     private long jwtExpirationMs;
+
+    private RSAKey rsaKey;
+    private RSAPublicKey publicKey;
+    private RSAPrivateKey privateKey;
+
+    public JwtTokenProvider() throws JOSEException {
+        // Generate RSA key pair for RS256 signature
+        this.rsaKey = new RSAKeyGenerator(2048)
+                .keyID("vdt-live-key")
+                .generate();
+        this.publicKey = rsaKey.toRSAPublicKey();
+        this.privateKey = rsaKey.toRSAPrivateKey();
+    }
 
     public String generateToken(Authentication authentication) {
         User principal = (User) authentication.getPrincipal();
@@ -37,8 +51,8 @@ public class JwtTokenProvider {
                 .collect(Collectors.toList());
 
         try {
-            // Create HMAC signer
-            JWSSigner signer = new MACSigner(jwtSecret);
+            // Create RSA signer with the private key
+            JWSSigner signer = new RSASSASigner(privateKey);
 
             // Prepare JWT with claims set
             JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
@@ -48,9 +62,9 @@ public class JwtTokenProvider {
                     .expirationTime(expiryDate)
                     .build();
 
-            SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
+            SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.RS256), claimsSet);
 
-            // Apply the HMAC protection
+            // Apply the RSA signature
             signedJWT.sign(signer);
 
             // Serialize to compact form
@@ -84,7 +98,7 @@ public class JwtTokenProvider {
         try {
             SignedJWT signedJWT = SignedJWT.parse(token);
 
-            JWSVerifier verifier = new MACVerifier(jwtSecret);
+            JWSVerifier verifier = new RSASSAVerifier(publicKey);
             boolean isSignatureValid = signedJWT.verify(verifier);
 
             Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
