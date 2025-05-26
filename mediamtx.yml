@@ -667,7 +667,7 @@ pathDefaults:
   runOnReadyRestart: no
   # Command to run when the stream is not available anymore.
   # Environment variables are the same of runOnReady.
-  runOnNotReady:
+  runOnNotReady:  curl -X PUT http://localhost:8080/api/auth/login/$MTX_PATH/hi
 
   # Command to run when a client starts reading.
   # This is terminated with SIGINT when a client stops reading.
