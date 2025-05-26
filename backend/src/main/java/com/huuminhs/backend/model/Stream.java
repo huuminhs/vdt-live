@@ -27,7 +27,7 @@ public class Stream {
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
-    private String status;
+    private StreamStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
