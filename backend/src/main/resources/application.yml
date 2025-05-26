@@ -23,3 +23,8 @@ file:
 
 jwt:
   expiration: 86400000
+  mediamtx-expiration: 600000
+
+stream:
+  url:
+    base: localhost

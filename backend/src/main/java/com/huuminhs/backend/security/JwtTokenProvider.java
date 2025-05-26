@@ -28,6 +28,10 @@ public class JwtTokenProvider {
     @Value("${jwt.expiration}")
     private long jwtExpirationMs;
 
+    // MediaMTX token expiration time: 10 minutes
+    @Value("${jwt.mediamtx-expiration}")
+    private long mediamtxJwtExpirationMs;
+
     private RSAKey rsaKey;
     private RSAPublicKey publicKey;
     private RSAPrivateKey privateKey;
@@ -135,7 +139,7 @@ public class JwtTokenProvider {
             JWSSigner signer = new RSASSASigner(mediaMtxPrivateKey);
 
             Date now = new Date();
-            Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
+            Date expiryDate = new Date(now.getTime() + mediamtxJwtExpirationMs);
 
             // Create the permission object
             Map<String, Object> permission = new HashMap<>();

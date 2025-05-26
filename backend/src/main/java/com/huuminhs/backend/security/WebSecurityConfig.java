@@ -58,6 +58,14 @@ public class WebSecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/publish/**").permitAll()
+                .requestMatchers(
+                    "/api/stream",
+                    "/api/stream/{streamId}",
+                    "/api/stream/live",
+                    "/api/stream/ended",
+                    "/api/stream/{streamId}/live",
+                    "/api/stream/{streamId}/ended"
+                ).permitAll()
                 .anyRequest().authenticated()
             );
 

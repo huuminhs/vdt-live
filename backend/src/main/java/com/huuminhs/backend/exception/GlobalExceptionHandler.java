@@ -84,6 +84,44 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(StreamNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleStreamNotFoundException(
+            StreamNotFoundException ex, WebRequest request) {
+
+        String errorMessage = ex.getMessage();
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+
+        log.info("Stream not found: {} at {}", errorMessage, path);
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            HttpStatus.NOT_FOUND.value(),
+            "Stream Not Found",
+            errorMessage,
+            path
+        );
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(StreamAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleStreamAccessDeniedException(
+            StreamAccessDeniedException ex, WebRequest request) {
+
+        String errorMessage = ex.getMessage();
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+
+        log.info("Stream access denied: {} at {}", errorMessage, path);
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            HttpStatus.FORBIDDEN.value(),
+            "Access Denied",
+            errorMessage,
+            path
+        );
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(
             Exception ex, WebRequest request) {
