@@ -46,7 +46,7 @@ runOnDisconnect:
 # * internal: users are stored in the configuration file
 # * http: an external HTTP URL is contacted to perform authentication
 # * jwt: an external identity server provides authentication through JWTs
-authMethod: jwt
+authMethod: internal
 
 # Internal authentication.
 # list of users.
@@ -667,7 +667,8 @@ pathDefaults:
   runOnReadyRestart: no
   # Command to run when the stream is not available anymore.
   # Environment variables are the same of runOnReady.
-  runOnNotReady:  curl -X PUT http://localhost:8080/api/auth/login/$MTX_PATH/hi
+  runOnNotReady:  
+    # curl -X PUT http://localhost:8080/api/auth/login/$MTX_PATH/hi
 
   # Command to run when a client starts reading.
   # This is terminated with SIGINT when a client stops reading.
@@ -718,6 +719,10 @@ paths:
   # example:
   # my_camera:
   #   source: rtsp://my_camera
+
+  stream/1:
+    source: publisher
+    fallback: rtsp://localhost:8554/redirect/stream/1
 
   # Settings under path "all_others" are applied to all paths that
   # do not match another entry.
