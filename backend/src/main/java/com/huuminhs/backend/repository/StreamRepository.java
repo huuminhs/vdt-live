@@ -18,22 +18,30 @@ public interface StreamRepository extends JpaRepository<Stream, Long> {
     List<Stream> findByStatus(StreamStatus status);
 
     // Cursor-based pagination methods
-    @Query("SELECT s FROM Stream s WHERE s.id > :cursor ORDER BY s.id ASC")
+    @Query("SELECT s FROM Stream s WHERE s.id > :cursor ORDER BY " +
+           "s.status ASC," +
+           "s.createdAt DESC")
     List<Stream> findAllWithCursor(@Param("cursor") Long cursor, Pageable pageable);
 
-    @Query("SELECT s FROM Stream s WHERE s.id > :cursor AND s.user = :user ORDER BY s.id ASC")
+    @Query("SELECT s FROM Stream s WHERE s.id > :cursor AND s.user = :user ORDER BY " +
+            "s.status ASC," +
+            "s.createdAt DESC")
     List<Stream> findByUserWithCursor(@Param("cursor") Long cursor, @Param("user") User user, Pageable pageable);
 
-    @Query("SELECT s FROM Stream s WHERE s.id > :cursor AND s.status = :status ORDER BY s.id ASC")
+    @Query("SELECT s FROM Stream s WHERE s.id > :cursor AND s.status = :status ORDER BY s.createdAt DESC")
     List<Stream> findByStatusWithCursor(@Param("cursor") Long cursor, @Param("status") StreamStatus status, Pageable pageable);
 
     // Methods for first page (no cursor)
-    @Query("SELECT s FROM Stream s ORDER BY s.id ASC")
+    @Query("SELECT s FROM Stream s ORDER BY " +
+            "s.status ASC," +
+            "s.createdAt DESC")
     List<Stream> findAllFirstPage(Pageable pageable);
 
-    @Query("SELECT s FROM Stream s WHERE s.user = :user ORDER BY s.id ASC")
+    @Query("SELECT s FROM Stream s WHERE s.user = :user ORDER BY " +
+            "s.status ASC," +
+            "s.createdAt DESC")
     List<Stream> findByUserFirstPage(@Param("user") User user, Pageable pageable);
 
-    @Query("SELECT s FROM Stream s WHERE s.status = :status ORDER BY s.id ASC")
+    @Query("SELECT s FROM Stream s WHERE s.status = :status ORDER BY s.createdAt DESC")
     List<Stream> findByStatusFirstPage(@Param("status") StreamStatus status, Pageable pageable);
 }
