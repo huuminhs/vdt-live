@@ -61,10 +61,10 @@ public class StreamControllerTest {
         createStreamRequest = new CreateStreamRequest("Test Stream", "Test Description");
         streamAccessResponse = new StreamAccessResponse(1L, "rtmp://localhost/stream/1", "test-jwt-token");
         updateStreamRequest = new UpdateStreamRequest("Updated Stream", "Updated Description");
-        streamResponse = new StreamResponse(1L, "Test Stream", "Test Description", StreamStatus.CREATED, "RTMP");
+        streamResponse = new StreamResponse(1L, "Test Stream", "Test Description", StreamStatus.CREATED, "testuser");
         streamResponses = Arrays.asList(
-                new StreamResponse(1L, "Stream 1", "Description 1", StreamStatus.CREATED, null),
-                new StreamResponse(2L, "Stream 2", "Description 2", StreamStatus.LIVE, null)
+                new StreamResponse(1L, "Stream 1", "Description 1", StreamStatus.CREATED, "user1"),
+                new StreamResponse(2L, "Stream 2", "Description 2", StreamStatus.LIVE, "user2")
         );
         paginatedStreamResponses = new PaginatedResponse<>(streamResponses, 2L, false);
     }
@@ -139,7 +139,7 @@ public class StreamControllerTest {
                 .andExpect(jsonPath("$.title", is("Test Stream")))
                 .andExpect(jsonPath("$.description", is("Test Description")))
                 .andExpect(jsonPath("$.status", is("CREATED")))
-                .andExpect(jsonPath("$.protocol", is("RTMP")));
+                .andExpect(jsonPath("$.creator", is("testuser")));
 
         verify(streamService).getStreamById(1L);
     }
@@ -251,8 +251,8 @@ public class StreamControllerTest {
     void getLiveStreams_Success() throws Exception {
         // Arrange
         List<StreamResponse> liveStreams = Arrays.asList(
-                new StreamResponse(2L, "Stream 2", "Description 2", StreamStatus.LIVE, null),
-                new StreamResponse(3L, "Stream 3", "Description 3", StreamStatus.LIVE, null)
+                new StreamResponse(2L, "Stream 2", "Description 2", StreamStatus.LIVE, "user2"),
+                new StreamResponse(3L, "Stream 3", "Description 3", StreamStatus.LIVE, "user3")
         );
         PaginatedResponse<StreamResponse> paginatedLiveStreams = new PaginatedResponse<>(liveStreams, 3L, false);
         when(streamService.getLiveStreams(isNull(), eq(10))).thenReturn(paginatedLiveStreams);
@@ -277,8 +277,8 @@ public class StreamControllerTest {
     void getEndedStreams_Success() throws Exception {
         // Arrange
         List<StreamResponse> endedStreams = Arrays.asList(
-                new StreamResponse(4L, "Stream 4", "Description 4", StreamStatus.ENDED, null),
-                new StreamResponse(5L, "Stream 5", "Description 5", StreamStatus.ENDED, null)
+                new StreamResponse(4L, "Stream 4", "Description 4", StreamStatus.ENDED, "user4"),
+                new StreamResponse(5L, "Stream 5", "Description 5", StreamStatus.ENDED, "user5")
         );
         PaginatedResponse<StreamResponse> paginatedEndedStreams = new PaginatedResponse<>(endedStreams, 5L, false);
         when(streamService.getEndedStreams(isNull(), eq(10))).thenReturn(paginatedEndedStreams);

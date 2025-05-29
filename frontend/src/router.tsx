@@ -1,11 +1,12 @@
 import { createRouter, createRoute, createRootRoute, Outlet, redirect } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { Navbar1 } from './components/navbar1'
-import App from './App'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { CreateStreamPage } from './pages/CreateStreamPage'
 import { useAuthStore } from './stores/authStore'
 import { StreamsPage } from './pages/StreamsPage'
+import TestPage from './pages/TestPage'
 
 // Root route with the navbar layout
 const rootRoute = createRootRoute({
@@ -20,11 +21,11 @@ const rootRoute = createRootRoute({
   )
 })
 
-// Home route
+// Home route - StreamsPage at root
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: () => <App />
+  component: () => <StreamsPage />
 })
 
 // About route
@@ -69,15 +70,6 @@ const pricingRoute = createRoute({
   )
 })
 
-// Blog route
-const blogRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/stream',
-  component: () => (
-    <StreamsPage/>
-  )
-})
-
 // Auth parent route - redirect to home if already authenticated
 const authRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -111,13 +103,33 @@ const registerRoute = createRoute({
   component: () => <RegisterPage />
 })
 
+// Create stream route - requires authentication
+const createStreamRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/stream/create',
+  beforeLoad: () => {
+    const { isAuthenticated } = useAuthStore.getState()
+    if (!isAuthenticated) {
+      throw redirect({ to: '/auth/login' })
+    }
+  },
+  component: () => <CreateStreamPage />
+})
+
+const testRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/test',
+  component: TestPage
+})
+
 // Create the route tree
 const routeTree = rootRoute.addChildren([
   indexRoute,
   aboutRoute,
+  testRoute,
   productsRoute,
   pricingRoute,
-  blogRoute,
+  createStreamRoute,
   authRoute.addChildren([
     loginRoute,
     registerRoute

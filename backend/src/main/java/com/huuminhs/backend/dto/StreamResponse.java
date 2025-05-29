@@ -13,7 +13,7 @@ public class StreamResponse {
     private String title;
     private String description;
     private StreamStatus status;
-    
-    // Optional field for GET /api/stream/{streamId} endpoint
-    private String protocol;
+
+    // Username of the creator of the stream
+    private String creator;
 }

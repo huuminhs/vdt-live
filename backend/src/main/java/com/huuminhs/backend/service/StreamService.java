@@ -106,7 +106,8 @@ public class StreamService {
                 .orElseThrow(() -> new StreamNotFoundException(streamId));
 
         StreamResponse response = mapToStreamResponse(stream);
-        response.setProtocol("RTMP"); // Hardcoded for now, could be dynamic in the future
+        // Set the creator field to the username of the stream's creator
+        response.setCreator(stream.getUser().getUsername());
 
         return response;
     }
@@ -218,7 +219,7 @@ public class StreamService {
                 stream.getTitle(),
                 stream.getDescription(),
                 stream.getStatus(),
-                null // protocol is only set for single stream requests
+                stream.getUser().getUsername() // set creator to the username of the stream's creator
         );
     }
 

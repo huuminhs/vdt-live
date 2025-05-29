@@ -162,7 +162,7 @@ public class StreamServiceTest {
         assertEquals("Test Stream", response.getTitle());
         assertEquals("Test Description", response.getDescription());
         assertEquals(StreamStatus.CREATED, response.getStatus());
-        assertEquals("RTMP", response.getProtocol());
+        assertEquals("testuser", response.getCreator());
     }
 
     @Test

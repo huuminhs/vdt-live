@@ -244,8 +244,14 @@ export const useUsername = () => {
 };
 
 export const useAuthHeader = () => {
-  const { getAuthHeader } = useAuthActions();
-  return getAuthHeader();
+  const { token, tokenType, isAuthenticated } = useAuth();
+  
+  // Return auth header without triggering token expiry checks during render
+  if (!isAuthenticated || !token) {
+    return null;
+  }
+  
+  return `${tokenType} ${token}`;
 };
 
 export const useTokenInfo = () => {
