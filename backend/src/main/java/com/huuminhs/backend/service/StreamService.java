@@ -1,6 +1,7 @@
 package com.huuminhs.backend.service;
 
 import com.huuminhs.backend.dto.CreateStreamRequest;
+import com.huuminhs.backend.dto.PaginatedResponse;
 import com.huuminhs.backend.dto.StreamAccessResponse;
 import com.huuminhs.backend.dto.StreamResponse;
 import com.huuminhs.backend.dto.UpdateStreamRequest;
@@ -14,6 +15,8 @@ import com.huuminhs.backend.repository.UserRepository;
 import com.huuminhs.backend.security.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -66,21 +69,35 @@ public class StreamService {
         );
     }
 
-    public List<StreamResponse> getAllStreams() {
-        log.info("Getting all streams");
-        return streamRepository.findAll().stream()
-                .map(this::mapToStreamResponse)
-                .collect(Collectors.toList());
+    public PaginatedResponse<StreamResponse> getAllStreams(Long cursor, int limit) {
+        log.info("Getting all streams with cursor: {} and limit: {}", cursor, limit);
+        Pageable pageable = PageRequest.of(0, limit + 1); // Request one more item to determine if there are more items
+        List<Stream> streams;
+
+        if (cursor == null) {
+            streams = streamRepository.findAllFirstPage(pageable);
+        } else {
+            streams = streamRepository.findAllWithCursor(cursor, pageable);
+        }
+
+        return createPaginatedResponse(streams, limit);
     }
 
-    public List<StreamResponse> getStreamsByUser(String username) {
-        log.info("Getting streams for user: {}", username);
+    public PaginatedResponse<StreamResponse> getStreamsByUser(String username, Long cursor, int limit) {
+        log.info("Getting streams for user: {} with cursor: {} and limit: {}", username, cursor, limit);
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
-        return streamRepository.findByUser(user).stream()
-                .map(this::mapToStreamResponse)
-                .collect(Collectors.toList());
+        Pageable pageable = PageRequest.of(0, limit + 1); // Request one more item to determine if there are more items
+        List<Stream> streams;
+
+        if (cursor == null) {
+            streams = streamRepository.findByUserFirstPage(user, pageable);
+        } else {
+            streams = streamRepository.findByUserWithCursor(cursor, user, pageable);
+        }
+
+        return createPaginatedResponse(streams, limit);
     }
 
     public StreamResponse getStreamById(Long streamId) {
@@ -128,18 +145,32 @@ public class StreamService {
         log.info("Stream deleted with ID: {}", streamId);
     }
 
-    public List<StreamResponse> getLiveStreams() {
-        log.info("Getting all live streams");
-        return streamRepository.findByStatus(StreamStatus.LIVE).stream()
-                .map(this::mapToStreamResponse)
-                .collect(Collectors.toList());
+    public PaginatedResponse<StreamResponse> getLiveStreams(Long cursor, int limit) {
+        log.info("Getting all live streams with cursor: {} and limit: {}", cursor, limit);
+        Pageable pageable = PageRequest.of(0, limit + 1); // Request one more item to determine if there are more items
+        List<Stream> streams;
+
+        if (cursor == null) {
+            streams = streamRepository.findByStatusFirstPage(StreamStatus.LIVE, pageable);
+        } else {
+            streams = streamRepository.findByStatusWithCursor(cursor, StreamStatus.LIVE, pageable);
+        }
+
+        return createPaginatedResponse(streams, limit);
     }
 
-    public List<StreamResponse> getEndedStreams() {
-        log.info("Getting all ended streams");
-        return streamRepository.findByStatus(StreamStatus.ENDED).stream()
-                .map(this::mapToStreamResponse)
-                .collect(Collectors.toList());
+    public PaginatedResponse<StreamResponse> getEndedStreams(Long cursor, int limit) {
+        log.info("Getting all ended streams with cursor: {} and limit: {}", cursor, limit);
+        Pageable pageable = PageRequest.of(0, limit + 1); // Request one more item to determine if there are more items
+        List<Stream> streams;
+
+        if (cursor == null) {
+            streams = streamRepository.findByStatusFirstPage(StreamStatus.ENDED, pageable);
+        } else {
+            streams = streamRepository.findByStatusWithCursor(cursor, StreamStatus.ENDED, pageable);
+        }
+
+        return createPaginatedResponse(streams, limit);
     }
 
     public void setStreamStatusToLive(Long streamId) {
@@ -189,5 +220,21 @@ public class StreamService {
                 stream.getStatus(),
                 null // protocol is only set for single stream requests
         );
+    }
+
+    private PaginatedResponse<StreamResponse> createPaginatedResponse(List<Stream> streams, int limit) {
+        boolean hasMore = streams.size() > limit;
+        List<Stream> limitedStreams = hasMore ? streams.subList(0, limit) : streams;
+
+        List<StreamResponse> responseItems = limitedStreams.stream()
+                .map(this::mapToStreamResponse)
+                .collect(Collectors.toList());
+
+        Long nextCursor = null;
+        if (hasMore && !limitedStreams.isEmpty()) {
+            nextCursor = limitedStreams.get(limitedStreams.size() - 1).getId();
+        }
+
+        return new PaginatedResponse<>(responseItems, nextCursor, hasMore);
     }
 }

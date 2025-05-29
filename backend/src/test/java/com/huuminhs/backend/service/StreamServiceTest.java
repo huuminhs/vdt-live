@@ -1,6 +1,7 @@
 package com.huuminhs.backend.service;
 
 import com.huuminhs.backend.dto.CreateStreamRequest;
+import com.huuminhs.backend.dto.PaginatedResponse;
 import com.huuminhs.backend.dto.StreamAccessResponse;
 import com.huuminhs.backend.dto.StreamResponse;
 import com.huuminhs.backend.dto.UpdateStreamRequest;
@@ -82,7 +83,7 @@ public class StreamServiceTest {
         // Assert
         assertNotNull(response);
         assertEquals(1L, response.getStreamId());
-        assertEquals("rtmp://localhost/stream/1", response.getStreamUrl());
+        assertEquals("rtmp://localhost/stream/", response.getStreamUrl());
         assertEquals("test-jwt-token", response.getMediamtxJwt());
         verify(streamRepository).save(any(Stream.class));
     }
@@ -105,15 +106,16 @@ public class StreamServiceTest {
         // Arrange
         Stream stream1 = new Stream(1L, "Stream 1", "Description 1", LocalDateTime.now(), StreamStatus.CREATED, testUser);
         Stream stream2 = new Stream(2L, "Stream 2", "Description 2", LocalDateTime.now(), StreamStatus.LIVE, testUser);
-        when(streamRepository.findAll()).thenReturn(Arrays.asList(stream1, stream2));
+        when(streamRepository.findAllFirstPage(any())).thenReturn(Arrays.asList(stream1, stream2));
 
         // Act
-        List<StreamResponse> responses = streamService.getAllStreams();
+        PaginatedResponse<StreamResponse> response = streamService.getAllStreams(null, 10);
 
         // Assert
-        assertEquals(2, responses.size());
-        assertEquals("Stream 1", responses.get(0).getTitle());
-        assertEquals("Stream 2", responses.get(1).getTitle());
+        assertEquals(2, response.getItems().size());
+        assertEquals("Stream 1", response.getItems().get(0).getTitle());
+        assertEquals("Stream 2", response.getItems().get(1).getTitle());
+        assertFalse(response.isHasMore());
     }
 
     @Test
@@ -122,15 +124,16 @@ public class StreamServiceTest {
         Stream stream1 = new Stream(1L, "Stream 1", "Description 1", LocalDateTime.now(), StreamStatus.CREATED, testUser);
         Stream stream2 = new Stream(2L, "Stream 2", "Description 2", LocalDateTime.now(), StreamStatus.LIVE, testUser);
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
-        when(streamRepository.findByUser(testUser)).thenReturn(Arrays.asList(stream1, stream2));
+        when(streamRepository.findByUserFirstPage(eq(testUser), any())).thenReturn(Arrays.asList(stream1, stream2));
 
         // Act
-        List<StreamResponse> responses = streamService.getStreamsByUser("testuser");
+        PaginatedResponse<StreamResponse> response = streamService.getStreamsByUser("testuser", null, 10);
 
         // Assert
-        assertEquals(2, responses.size());
-        assertEquals("Stream 1", responses.get(0).getTitle());
-        assertEquals("Stream 2", responses.get(1).getTitle());
+        assertEquals(2, response.getItems().size());
+        assertEquals("Stream 1", response.getItems().get(0).getTitle());
+        assertEquals("Stream 2", response.getItems().get(1).getTitle());
+        assertFalse(response.isHasMore());
     }
 
     @Test
@@ -140,9 +143,9 @@ public class StreamServiceTest {
 
         // Act & Assert
         assertThrows(UsernameNotFoundException.class, () -> {
-            streamService.getStreamsByUser("nonexistent");
+            streamService.getStreamsByUser("nonexistent", null, 10);
         });
-        verify(streamRepository, never()).findByUser(any(User.class));
+        verify(streamRepository, never()).findByUserFirstPage(any(User.class), any());
     }
 
     @Test
@@ -258,17 +261,18 @@ public class StreamServiceTest {
         // Arrange
         Stream stream1 = new Stream(1L, "Stream 1", "Description 1", LocalDateTime.now(), StreamStatus.LIVE, testUser);
         Stream stream2 = new Stream(2L, "Stream 2", "Description 2", LocalDateTime.now(), StreamStatus.LIVE, testUser);
-        when(streamRepository.findByStatus(StreamStatus.LIVE)).thenReturn(Arrays.asList(stream1, stream2));
+        when(streamRepository.findByStatusFirstPage(eq(StreamStatus.LIVE), any())).thenReturn(Arrays.asList(stream1, stream2));
 
         // Act
-        List<StreamResponse> responses = streamService.getLiveStreams();
+        PaginatedResponse<StreamResponse> response = streamService.getLiveStreams(null, 10);
 
         // Assert
-        assertEquals(2, responses.size());
-        assertEquals("Stream 1", responses.get(0).getTitle());
-        assertEquals("Stream 2", responses.get(1).getTitle());
-        assertEquals(StreamStatus.LIVE, responses.get(0).getStatus());
-        assertEquals(StreamStatus.LIVE, responses.get(1).getStatus());
+        assertEquals(2, response.getItems().size());
+        assertEquals("Stream 1", response.getItems().get(0).getTitle());
+        assertEquals("Stream 2", response.getItems().get(1).getTitle());
+        assertEquals(StreamStatus.LIVE, response.getItems().get(0).getStatus());
+        assertEquals(StreamStatus.LIVE, response.getItems().get(1).getStatus());
+        assertFalse(response.isHasMore());
     }
 
     @Test
@@ -276,17 +280,18 @@ public class StreamServiceTest {
         // Arrange
         Stream stream1 = new Stream(1L, "Stream 1", "Description 1", LocalDateTime.now(), StreamStatus.ENDED, testUser);
         Stream stream2 = new Stream(2L, "Stream 2", "Description 2", LocalDateTime.now(), StreamStatus.ENDED, testUser);
-        when(streamRepository.findByStatus(StreamStatus.ENDED)).thenReturn(Arrays.asList(stream1, stream2));
+        when(streamRepository.findByStatusFirstPage(eq(StreamStatus.ENDED), any())).thenReturn(Arrays.asList(stream1, stream2));
 
         // Act
-        List<StreamResponse> responses = streamService.getEndedStreams();
+        PaginatedResponse<StreamResponse> response = streamService.getEndedStreams(null, 10);
 
         // Assert
-        assertEquals(2, responses.size());
-        assertEquals("Stream 1", responses.get(0).getTitle());
-        assertEquals("Stream 2", responses.get(1).getTitle());
-        assertEquals(StreamStatus.ENDED, responses.get(0).getStatus());
-        assertEquals(StreamStatus.ENDED, responses.get(1).getStatus());
+        assertEquals(2, response.getItems().size());
+        assertEquals("Stream 1", response.getItems().get(0).getTitle());
+        assertEquals("Stream 2", response.getItems().get(1).getTitle());
+        assertEquals(StreamStatus.ENDED, response.getItems().get(0).getStatus());
+        assertEquals(StreamStatus.ENDED, response.getItems().get(1).getStatus());
+        assertFalse(response.isHasMore());
     }
 
     @Test
@@ -353,7 +358,7 @@ public class StreamServiceTest {
         // Assert
         assertNotNull(response);
         assertEquals(1L, response.getStreamId());
-        assertEquals("rtmp://localhost/stream/1", response.getStreamUrl());
+        assertEquals("rtmp://localhost/stream/", response.getStreamUrl());
         assertEquals("test-jwt-token", response.getMediamtxJwt());
         verify(jwtTokenProvider).generateMediaMtxToken(1);
     }

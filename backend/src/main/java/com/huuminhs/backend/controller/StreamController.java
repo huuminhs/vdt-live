@@ -1,6 +1,7 @@
 package com.huuminhs.backend.controller;
 
 import com.huuminhs.backend.dto.CreateStreamRequest;
+import com.huuminhs.backend.dto.PaginatedResponse;
 import com.huuminhs.backend.dto.StreamAccessResponse;
 import com.huuminhs.backend.dto.StreamResponse;
 import com.huuminhs.backend.dto.UpdateStreamRequest;
@@ -35,16 +36,21 @@ public class StreamController {
     }
 
     @GetMapping
-    public ResponseEntity<List<StreamResponse>> getAllStreams() {
-        log.info("Getting all streams");
-        List<StreamResponse> streams = streamService.getAllStreams();
+    public ResponseEntity<PaginatedResponse<StreamResponse>> getAllStreams(
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "10") int limit) {
+        log.info("Getting all streams with cursor: {} and limit: {}", cursor, limit);
+        PaginatedResponse<StreamResponse> streams = streamService.getAllStreams(cursor, limit);
         return ResponseEntity.ok(streams);
     }
 
     @GetMapping("/mine")
-    public ResponseEntity<List<StreamResponse>> getMyStreams(Authentication authentication) {
-        log.info("Getting streams for user: {}", authentication.getName());
-        List<StreamResponse> streams = streamService.getStreamsByUser(authentication.getName());
+    public ResponseEntity<PaginatedResponse<StreamResponse>> getMyStreams(
+            Authentication authentication,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "10") int limit) {
+        log.info("Getting streams for user: {} with cursor: {} and limit: {}", authentication.getName(), cursor, limit);
+        PaginatedResponse<StreamResponse> streams = streamService.getStreamsByUser(authentication.getName(), cursor, limit);
         return ResponseEntity.ok(streams);
     }
 
@@ -75,16 +81,20 @@ public class StreamController {
     }
 
     @GetMapping("/live")
-    public ResponseEntity<List<StreamResponse>> getLiveStreams() {
-        log.info("Getting all live streams");
-        List<StreamResponse> streams = streamService.getLiveStreams();
+    public ResponseEntity<PaginatedResponse<StreamResponse>> getLiveStreams(
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "10") int limit) {
+        log.info("Getting all live streams with cursor: {} and limit: {}", cursor, limit);
+        PaginatedResponse<StreamResponse> streams = streamService.getLiveStreams(cursor, limit);
         return ResponseEntity.ok(streams);
     }
 
     @GetMapping("/ended")
-    public ResponseEntity<List<StreamResponse>> getEndedStreams() {
-        log.info("Getting all ended streams");
-        List<StreamResponse> streams = streamService.getEndedStreams();
+    public ResponseEntity<PaginatedResponse<StreamResponse>> getEndedStreams(
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "10") int limit) {
+        log.info("Getting all ended streams with cursor: {} and limit: {}", cursor, limit);
+        PaginatedResponse<StreamResponse> streams = streamService.getEndedStreams(cursor, limit);
         return ResponseEntity.ok(streams);
     }
 

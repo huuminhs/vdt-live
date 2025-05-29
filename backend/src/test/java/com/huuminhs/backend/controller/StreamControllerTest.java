@@ -2,6 +2,7 @@ package com.huuminhs.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huuminhs.backend.dto.CreateStreamRequest;
+import com.huuminhs.backend.dto.PaginatedResponse;
 import com.huuminhs.backend.dto.StreamAccessResponse;
 import com.huuminhs.backend.dto.StreamResponse;
 import com.huuminhs.backend.dto.UpdateStreamRequest;
@@ -26,6 +27,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -51,6 +53,7 @@ public class StreamControllerTest {
     private UpdateStreamRequest updateStreamRequest;
     private StreamResponse streamResponse;
     private List<StreamResponse> streamResponses;
+    private PaginatedResponse<StreamResponse> paginatedStreamResponses;
 
     @BeforeEach
     void setUp() {
@@ -63,6 +66,7 @@ public class StreamControllerTest {
                 new StreamResponse(1L, "Stream 1", "Description 1", StreamStatus.CREATED, null),
                 new StreamResponse(2L, "Stream 2", "Description 2", StreamStatus.LIVE, null)
         );
+        paginatedStreamResponses = new PaginatedResponse<>(streamResponses, 2L, false);
     }
 
     @Test
@@ -87,36 +91,40 @@ public class StreamControllerTest {
     @Test
     void getAllStreams_Success() throws Exception {
         // Arrange
-        when(streamService.getAllStreams()).thenReturn(streamResponses);
+        when(streamService.getAllStreams(null, 10)).thenReturn(paginatedStreamResponses);
 
         // Act & Assert
         mockMvc.perform(get("/api/stream"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].streamId", is(1)))
-                .andExpect(jsonPath("$[0].title", is("Stream 1")))
-                .andExpect(jsonPath("$[1].streamId", is(2)))
-                .andExpect(jsonPath("$[1].title", is("Stream 2")));
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[0].streamId", is(1)))
+                .andExpect(jsonPath("$.items[0].title", is("Stream 1")))
+                .andExpect(jsonPath("$.items[1].streamId", is(2)))
+                .andExpect(jsonPath("$.items[1].title", is("Stream 2")))
+                .andExpect(jsonPath("$.nextCursor", is(2)))
+                .andExpect(jsonPath("$.hasMore", is(false)));
 
-        verify(streamService).getAllStreams();
+        verify(streamService).getAllStreams(null, 10);
     }
 
     @Test
     @WithMockUser(username = "testuser")
     void getMyStreams_Success() throws Exception {
         // Arrange
-        when(streamService.getStreamsByUser("testuser")).thenReturn(streamResponses);
+        when(streamService.getStreamsByUser(eq("testuser"), isNull(), eq(10))).thenReturn(paginatedStreamResponses);
 
         // Act & Assert
         mockMvc.perform(get("/api/stream/mine"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].streamId", is(1)))
-                .andExpect(jsonPath("$[0].title", is("Stream 1")))
-                .andExpect(jsonPath("$[1].streamId", is(2)))
-                .andExpect(jsonPath("$[1].title", is("Stream 2")));
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[0].streamId", is(1)))
+                .andExpect(jsonPath("$.items[0].title", is("Stream 1")))
+                .andExpect(jsonPath("$.items[1].streamId", is(2)))
+                .andExpect(jsonPath("$.items[1].title", is("Stream 2")))
+                .andExpect(jsonPath("$.nextCursor", is(2)))
+                .andExpect(jsonPath("$.hasMore", is(false)));
 
-        verify(streamService).getStreamsByUser("testuser");
+        verify(streamService).getStreamsByUser(eq("testuser"), isNull(), eq(10));
     }
 
     @Test
@@ -246,20 +254,23 @@ public class StreamControllerTest {
                 new StreamResponse(2L, "Stream 2", "Description 2", StreamStatus.LIVE, null),
                 new StreamResponse(3L, "Stream 3", "Description 3", StreamStatus.LIVE, null)
         );
-        when(streamService.getLiveStreams()).thenReturn(liveStreams);
+        PaginatedResponse<StreamResponse> paginatedLiveStreams = new PaginatedResponse<>(liveStreams, 3L, false);
+        when(streamService.getLiveStreams(isNull(), eq(10))).thenReturn(paginatedLiveStreams);
 
         // Act & Assert
         mockMvc.perform(get("/api/stream/live"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].streamId", is(2)))
-                .andExpect(jsonPath("$[0].title", is("Stream 2")))
-                .andExpect(jsonPath("$[0].status", is("LIVE")))
-                .andExpect(jsonPath("$[1].streamId", is(3)))
-                .andExpect(jsonPath("$[1].title", is("Stream 3")))
-                .andExpect(jsonPath("$[1].status", is("LIVE")));
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[0].streamId", is(2)))
+                .andExpect(jsonPath("$.items[0].title", is("Stream 2")))
+                .andExpect(jsonPath("$.items[0].status", is("LIVE")))
+                .andExpect(jsonPath("$.items[1].streamId", is(3)))
+                .andExpect(jsonPath("$.items[1].title", is("Stream 3")))
+                .andExpect(jsonPath("$.items[1].status", is("LIVE")))
+                .andExpect(jsonPath("$.nextCursor", is(3)))
+                .andExpect(jsonPath("$.hasMore", is(false)));
 
-        verify(streamService).getLiveStreams();
+        verify(streamService).getLiveStreams(isNull(), eq(10));
     }
 
     @Test
@@ -269,20 +280,23 @@ public class StreamControllerTest {
                 new StreamResponse(4L, "Stream 4", "Description 4", StreamStatus.ENDED, null),
                 new StreamResponse(5L, "Stream 5", "Description 5", StreamStatus.ENDED, null)
         );
-        when(streamService.getEndedStreams()).thenReturn(endedStreams);
+        PaginatedResponse<StreamResponse> paginatedEndedStreams = new PaginatedResponse<>(endedStreams, 5L, false);
+        when(streamService.getEndedStreams(isNull(), eq(10))).thenReturn(paginatedEndedStreams);
 
         // Act & Assert
         mockMvc.perform(get("/api/stream/ended"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].streamId", is(4)))
-                .andExpect(jsonPath("$[0].title", is("Stream 4")))
-                .andExpect(jsonPath("$[0].status", is("ENDED")))
-                .andExpect(jsonPath("$[1].streamId", is(5)))
-                .andExpect(jsonPath("$[1].title", is("Stream 5")))
-                .andExpect(jsonPath("$[1].status", is("ENDED")));
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[0].streamId", is(4)))
+                .andExpect(jsonPath("$.items[0].title", is("Stream 4")))
+                .andExpect(jsonPath("$.items[0].status", is("ENDED")))
+                .andExpect(jsonPath("$.items[1].streamId", is(5)))
+                .andExpect(jsonPath("$.items[1].title", is("Stream 5")))
+                .andExpect(jsonPath("$.items[1].status", is("ENDED")))
+                .andExpect(jsonPath("$.nextCursor", is(5)))
+                .andExpect(jsonPath("$.hasMore", is(false)));
 
-        verify(streamService).getEndedStreams();
+        verify(streamService).getEndedStreams(isNull(), eq(10));
     }
 
     @Test
