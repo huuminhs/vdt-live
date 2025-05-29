@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter, useRouterState } from "@tanstack/react-router"
+import { WHIPClient } from "@eyevinn/whip-web-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -24,9 +25,9 @@ export function LivePage() {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [videoKey, setVideoKey] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);  const mediaStreamRef = useRef<MediaStream | null>(null);
   const pendingStreamRef = useRef<MediaStream | null>(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | WHIPClient | null>(null);
   
   // Callback ref to handle video element creation
   const videoCallbackRef = (element: HTMLVideoElement | null) => {
@@ -127,13 +128,25 @@ export function LivePage() {
       video.removeEventListener('loadstart', handleLoadStart)
     }
   }, [])
-
   // Cleanup effect when component unmounts
   useEffect(() => {
     return () => {
       // Clean up media stream when component unmounts
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop())
+      }
+      
+      // Clean up WHIP client when component unmounts
+      if (peerConnectionRef.current) {
+        // Check if it's a WHIP client with destroy method
+        if ('destroy' in peerConnectionRef.current && typeof peerConnectionRef.current.destroy === 'function') {
+          peerConnectionRef.current.destroy().catch((error: Error) => {
+            console.error('Error destroying WHIP client during cleanup:', error)
+          })
+        } else if ('close' in peerConnectionRef.current && typeof peerConnectionRef.current.close === 'function') {
+          peerConnectionRef.current.close()
+        }
+        peerConnectionRef.current = null
       }
     }
   }, [])
@@ -313,33 +326,98 @@ export function LivePage() {
     
     console.log('All media stopped and states reset')
   }
-
   const startBrowserStream = async () => {
     if (!mediaStreamRef.current) return
     
     try {
-      // Here you would implement WebRTC streaming to the server
-      // For now, we'll simulate the streaming process
       console.log('Starting WebRTC stream to:', webrtcUrl)
       console.log('Stream data:', streamData)
       
-      // Simulate WebRTC connection
-      setIsStreaming(true)
-        // In a real implementation, you would:
-      // 1. Create RTCPeerConnection
-      // 2. Add local stream tracks
-      // 3. Create offer/answer with server
-      // 4. Send stream to webrtcUrl endpoint
+      // Create WHIP client instance with proper configuration
+      const whipClient = new WHIPClient({
+        endpoint: webrtcUrl,
+        opts: {
+          debug: true,
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+          ],
+          authkey: streamData.mediamtxJwt
+        }
+      })
+      
+      // Store client reference for cleanup
+      peerConnectionRef.current = whipClient
+      
+      // Set up event listeners
+      whipClient.on('connected', () => {
+        console.log('WHIP client connected successfully!')
+        setIsStreaming(true)
+      })
+      
+      whipClient.on('disconnected', () => {
+        console.log('WHIP client disconnected')
+        setIsStreaming(false)
+      })
+      
+      whipClient.on('error', (error: Error) => {
+        console.error('WHIP client error:', error)
+        setIsStreaming(false)
+      })
+      
+      // Optionally set ICE servers from endpoint
+      try {
+        await whipClient.setIceServersFromEndpoint()
+      } catch (error) {
+        console.log('Could not get ICE servers from endpoint, using default ones:', error)
+      }
+      
+      // Start ingesting the media stream
+      console.log('Starting media stream ingestion...')
+      await whipClient.ingest(mediaStreamRef.current)
+      
+      console.log('WebRTC streaming setup complete!')
       
     } catch (error) {
       console.error('Error starting WebRTC stream:', error)
+      // Clean up on error
+      if (peerConnectionRef.current) {
+        try {
+          // Check if it's a WHIP client with destroy method
+          if ('destroy' in peerConnectionRef.current && typeof peerConnectionRef.current.destroy === 'function') {
+            await peerConnectionRef.current.destroy()
+          } else if ('close' in peerConnectionRef.current && typeof peerConnectionRef.current.close === 'function') {
+            peerConnectionRef.current.close()
+          }
+        } catch (cleanupError) {
+          console.error('Error during cleanup:', cleanupError)
+        }
+        peerConnectionRef.current = null
+      }
+      setIsStreaming(false)
     }
   }
-
-  const stopBrowserStream = () => {
-    setIsStreaming(false)
+  const stopBrowserStream = async () => {
     console.log('Stopping WebRTC stream')
-    // In real implementation, close RTCPeerConnection
+    
+    // Clean up WHIP client
+    if (peerConnectionRef.current) {
+      try {
+        // Check if it's a WHIP client with destroy method
+        if ('destroy' in peerConnectionRef.current && typeof peerConnectionRef.current.destroy === 'function') {
+          await peerConnectionRef.current.destroy()
+          console.log('WHIP client destroyed')
+        } else if ('close' in peerConnectionRef.current && typeof peerConnectionRef.current.close === 'function') {
+          peerConnectionRef.current.close()
+          console.log('Peer connection closed')
+        }
+      } catch (error) {
+        console.error('Error during cleanup:', error)
+      }
+      peerConnectionRef.current = null
+    }
+    
+    setIsStreaming(false)
   }
 
   return (
