@@ -17,16 +17,76 @@ import type { CreateStreamResponse } from "@/services/streamService"
 
 export function LivePage() {
   const router = useRouter();
-  const [copied, setCopied] = useState(false)
-  const [isStreaming, setIsStreaming] = useState(false)
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null)
-  const [isCameraOn, setIsCameraOn] = useState(true)
-  const [isMicOn, setIsMicOn] = useState(true)
-  const [isScreenSharing, setIsScreenSharing] = useState(false)
-  const [isVideoLoading, setIsVideoLoading] = useState(false)
-  const [videoKey, setVideoKey] = useState(0)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const mediaStreamRef = useRef<MediaStream | null>(null)
+  const [copied, setCopied] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [isCameraOn, setIsCameraOn] = useState(true);
+  const [isMicOn, setIsMicOn] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [videoKey, setVideoKey] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const pendingStreamRef = useRef<MediaStream | null>(null);
+  
+  // Callback ref to handle video element creation
+  const videoCallbackRef = (element: HTMLVideoElement | null) => {
+    videoRef.current = element;
+    
+    // If we have a pending stream and the video element is now available, set it up
+    if (element && pendingStreamRef.current) {
+      console.log('Video element now available, setting up pending stream...');
+      setupVideoStream(element, pendingStreamRef.current);
+      pendingStreamRef.current = null; // Clear pending stream
+    }
+  };
+    // Helper function to set up video stream
+  const setupVideoStream = async (video: HTMLVideoElement, stream: MediaStream) => {
+    video.srcObject = stream;
+    
+    console.log('Setting up video stream...');
+    
+    // Immediate attempt to play
+    try {
+      await video.play();
+      console.log('Video playing successfully');
+      setIsVideoLoading(false);
+    } catch (error) {
+      console.log('Immediate play failed:', error);
+      
+      // Set up event listeners for retry
+      const onCanPlay = async () => {
+        console.log('canplay event fired');
+        try {
+          await video.play();
+          console.log('Play after canplay success');
+          setIsVideoLoading(false);
+        } catch (err) {
+          console.error('Play after canplay failed:', err);
+        }
+      };
+
+      const onLoadedData = async () => {
+        console.log('loadeddata event fired');
+        try {
+          await video.play();
+          console.log('Play after loadeddata success');
+          setIsVideoLoading(false);
+        } catch (err) {
+          console.error('Play after loadeddata failed:', err);
+        }
+      };
+
+      video.addEventListener('canplay', onCanPlay, { once: true });
+      video.addEventListener('loadeddata', onLoadedData, { once: true });
+      console.log('Event listeners added for retry');
+    }
+
+    // Fallback timeout - always clear loading after 2 seconds
+    setTimeout(() => {
+      console.log('Fallback timeout triggered, clearing loading state');
+      setIsVideoLoading(false);
+    }, 2000);
+  };
   // Effect to handle video playing (global fallback)
   useEffect(() => {
     const video = videoRef.current
@@ -101,7 +161,7 @@ export function LivePage() {
   const rtmpUrl = `rtmp://${streamData.streamUrl}/stream/${streamData.streamId}?jwt=${streamData.mediamtxJwt}`
   
   // Construct WebRTC URL
-  const webrtcUrl = `http://${streamData.streamUrl}:8889/stream/${streamData.streamId}/publish`
+  const webrtcUrl = `http://${streamData.streamUrl}:8889/stream/${streamData.streamId}/whip`
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(rtmpUrl)
@@ -110,7 +170,6 @@ export function LivePage() {
     } catch (err) {
       console.error("Failed to copy to clipboard:", err)
     }  }
-
   // Webcam functions
   const startWebcam = async () => {
     setIsVideoLoading(true)
@@ -135,59 +194,17 @@ export function LivePage() {
       setIsMicOn(true)
       setIsScreenSharing(false)
       
-      console.log("videoRef.current before timeout: ", videoRef.current)
+      // Check if video element is already available
+      if (videoRef.current) {
+        console.log('Video element already available, setting up immediately')
+        await setupVideoStream(videoRef.current, stream)
+      } else {
+        console.log('Video element not available yet, storing stream for callback ref')
+        pendingStreamRef.current = stream
+      }
       
-      // Wait for React to re-render and create the video element
-      setTimeout(() => {
-        console.log("videoRef.current after timeout: ", videoRef.current)
-        
-        if (videoRef.current) {
-          const video = videoRef.current
-          video.srcObject = stream
-          
-          console.log('Webcam: Setting up video after timeout...')
-          
-          // Immediate attempt to play
-          video.play().then(() => {
-            console.log('Webcam: Immediate play success')
-            setIsVideoLoading(false)
-          }).catch((error) => {
-            console.log('Webcam: Immediate play failed:', error)
-            
-            // Set up event listeners for retry
-            const onCanPlay = () => {
-              console.log('Webcam: canplay event fired')
-              video.play().then(() => {
-                console.log('Webcam: Play after canplay success')
-                setIsVideoLoading(false)
-              }).catch(console.error)
-            }
-
-            const onLoadedData = () => {
-              console.log('Webcam: loadeddata event fired')
-              video.play().then(() => {
-                console.log('Webcam: Play after loadeddata success')
-                setIsVideoLoading(false)
-              }).catch(console.error)
-            }
-
-            video.addEventListener('canplay', onCanPlay, { once: true })
-            video.addEventListener('loadeddata', onLoadedData, { once: true })
-            console.log('Webcam: Event listeners added for retry')
-          })
-
-          // Fallback timeout - always clear loading after 2 seconds
-          setTimeout(() => {
-            console.log('Webcam: Fallback timeout triggered, clearing loading state')
-            setIsVideoLoading(false)
-          }, 2000)
-        } else {
-          console.error('Webcam: Video element still not available after timeout')
-          setIsVideoLoading(false)
-        }
-      }, 100) // Wait 100ms for React to re-render
-      
-      console.log('Webcam setup complete')    } catch (error: any) {
+      console.log('Webcam setup complete')
+    } catch (error: any) {
       console.error('Error accessing webcam:', error)
       if (error?.name === 'NotAllowedError' || error?.name === 'AbortError') {
         setHasPermission(null)
@@ -197,7 +214,6 @@ export function LivePage() {
       setIsVideoLoading(false)
     }
   }
-
   const startScreenShare = async () => {
     setIsVideoLoading(true)
     setVideoKey(k => k + 1)
@@ -219,53 +235,14 @@ export function LivePage() {
       setIsCameraOn(false)
       setIsMicOn(true)
       
-      // Wait for React to re-render and create the video element
-      setTimeout(() => {
-        if (videoRef.current) {
-          const video = videoRef.current
-          video.srcObject = stream
-          
-          console.log('ScreenShare: Setting up video after timeout...')
-          
-          // Immediate attempt to play
-          video.play().then(() => {
-            console.log('ScreenShare: Immediate play success')
-            setIsVideoLoading(false)
-          }).catch((error) => {
-            console.log('ScreenShare: Immediate play failed:', error)
-            
-            // Set up event listeners for retry
-            const onCanPlay = () => {
-              console.log('ScreenShare: canplay event fired')
-              video.play().then(() => {
-                console.log('ScreenShare: Play after canplay success')
-                setIsVideoLoading(false)
-              }).catch(console.error)
-            }
-
-            const onLoadedData = () => {
-              console.log('ScreenShare: loadeddata event fired')
-              video.play().then(() => {
-                console.log('ScreenShare: Play after loadeddata success')
-                setIsVideoLoading(false)
-              }).catch(console.error)
-            }
-
-            video.addEventListener('canplay', onCanPlay, { once: true })
-            video.addEventListener('loadeddata', onLoadedData, { once: true })
-            console.log('ScreenShare: Event listeners added for retry')
-          })
-
-          // Fallback timeout - always clear loading after 2 seconds
-          setTimeout(() => {
-            console.log('ScreenShare: Fallback timeout triggered, clearing loading state')
-            setIsVideoLoading(false)
-          }, 2000)
-        } else {
-          console.error('ScreenShare: Video element still not available after timeout')
-          setIsVideoLoading(false)
-        }
-      }, 100) // Wait 100ms for React to re-render
+      // Check if video element is already available
+      if (videoRef.current) {
+        console.log('Video element already available, setting up immediately')
+        await setupVideoStream(videoRef.current, stream)
+      } else {
+        console.log('Video element not available yet, storing stream for callback ref')
+        pendingStreamRef.current = stream
+      }
       
       stream.getVideoTracks()[0].addEventListener('ended', () => {
         setIsScreenSharing(false)
@@ -488,10 +465,9 @@ export function LivePage() {
                   
                   {hasPermission && (
                     <div className="space-y-4">
-                      <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
-                        <video
+                      <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>                        <video
                           key={videoKey}
-                          ref={videoRef}
+                          ref={videoCallbackRef}
                           autoPlay
                           playsInline
                           muted
