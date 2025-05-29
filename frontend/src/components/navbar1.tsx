@@ -1,5 +1,6 @@
-import { Book, Menu, Sunset, Trees, Zap } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useAuthStore } from "@/stores/authStore";
 
 import {
   Accordion,
@@ -23,6 +24,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+
+import PlatformLogo from "@/assets/logo.png";
 
 interface MenuItem {
   title: string;
@@ -54,88 +57,33 @@ interface Navbar1Props {
 
 const Navbar1 = ({
   logo = {
-    url: "https://www.shadcnblocks.com",
-    src: "https://shadcnblocks.com/images/block/logos/shadcnblockscom-icon.svg",
+    url: "/",
+    src: PlatformLogo,
     alt: "logo",
-    title: "Shadcnblocks.com",
+    title: "VDT Live",
   },
   menu = [
-    { title: "Home", url: "#" },
     {
-      title: "Products",
-      url: "#",
-      items: [
-        {
-          title: "Blog",
-          description: "The latest industry news, updates, and info",
-          icon: <Book className="size-5 shrink-0" />,
-          url: "#",
-        },
-        {
-          title: "Company",
-          description: "Our mission is to innovate and empower the world",
-          icon: <Trees className="size-5 shrink-0" />,
-          url: "#",
-        },
-        {
-          title: "Careers",
-          description: "Browse job listing and discover our workspace",
-          icon: <Sunset className="size-5 shrink-0" />,
-          url: "#",
-        },
-        {
-          title: "Support",
-          description:
-            "Get in touch with our support team or visit our community forums",
-          icon: <Zap className="size-5 shrink-0" />,
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Resources",
-      url: "#",
-      items: [
-        {
-          title: "Help Center",
-          description: "Get all the answers you need right here",
-          icon: <Zap className="size-5 shrink-0" />,
-          url: "#",
-        },
-        {
-          title: "Contact Us",
-          description: "We are here to help you with any questions you have",
-          icon: <Sunset className="size-5 shrink-0" />,
-          url: "#",
-        },
-        {
-          title: "Status",
-          description: "Check the current status of our services and APIs",
-          icon: <Trees className="size-5 shrink-0" />,
-          url: "#",
-        },
-        {
-          title: "Terms of Service",
-          description: "Our terms and conditions for using our services",
-          icon: <Book className="size-5 shrink-0" />,
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Pricing",
+      title: "Bắt đầu live",
       url: "#",
     },
     {
-      title: "Blog",
+      title: "Xem live",
       url: "#",
     },
   ],
-  auth = {
-    login: { title: "Login", url: "#" },
-    signup: { title: "Sign up", url: "#" },
-  },
 }: Navbar1Props) => {
+  const { isAuthenticated, logout } = useAuthStore()
+
+  // Add "Tài khoản" to menu only if authenticated
+  const menuWithAuth = isAuthenticated 
+    ? [...menu, { title: "Tài khoản", url: "#" }]
+    : menu
+
+  const handleLogout = () => {
+    logout()
+  }
+
   return (
     <section className="py-4">
       <div className="container mx-auto px-6">
@@ -145,25 +93,36 @@ const Navbar1 = ({
             {/* Logo */}
             <a href={logo.url} className="flex items-center gap-2">
               <img src={logo.src} className="max-h-8" alt={logo.alt} />
-              <span className="text-lg font-semibold tracking-tighter">
+              <span className="text-lg font-semibold tracking-tighter text-red-500">
                 {logo.title}
               </span>
             </a>
             <div className="flex items-center">
               <NavigationMenu>
                 <NavigationMenuList>
-                  {menu.map((item) => renderMenuItem(item))}
+                  {menuWithAuth.map((item) => renderMenuItem(item))}
                 </NavigationMenuList>
               </NavigationMenu>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button asChild variant="outline" size="sm">
-              <a href={auth.login.url}>{auth.login.title}</a>
-            </Button>
-            <Button asChild size="sm">
-              <a href={auth.signup.url}>{auth.signup.title}</a>
-            </Button>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleLogout}>
+                  <LogOut className="size-4 mr-1" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/auth/login">Đăng nhập</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link to="/auth/register">Đăng ký</Link>
+                </Button>
+              </>
+            )}
           </div>
         </nav>
 
@@ -194,16 +153,27 @@ const Navbar1 = ({
                     collapsible
                     className="flex w-full flex-col gap-4"
                   >
-                    {menu.map((item) => renderMobileMenuItem(item))}
+                    {menuWithAuth.map((item) => renderMobileMenuItem(item))}
                   </Accordion>
 
                   <div className="flex flex-col gap-3">
-                    <Button asChild variant="outline">
-                      <a href={auth.login.url}>{auth.login.title}</a>
-                    </Button>
-                    <Button asChild>
-                      <a href={auth.signup.url}>{auth.signup.title}</a>
-                    </Button>
+                    {isAuthenticated ? (
+                      <div className="flex flex-col gap-3">
+                        <Button variant="outline" onClick={handleLogout}>
+                          <LogOut className="size-4 mr-1" />
+                          Đăng xuất
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Button asChild variant="outline">
+                          <Link to="/auth/login">Đăng nhập</Link>
+                        </Button>
+                        <Button asChild>
+                          <Link to="/auth/register">Đăng ký</Link>
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </SheetContent>

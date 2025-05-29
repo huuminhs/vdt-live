@@ -1,7 +1,11 @@
-import { createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router'
+import { createRouter, createRoute, createRootRoute, Outlet, redirect } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { Navbar1 } from './components/navbar1'
 import App from './App'
+import { LoginPage } from './pages/LoginPage'
+import { RegisterPage } from './pages/RegisterPage'
+import { useAuthStore } from './stores/authStore'
+import { StreamsPage } from './pages/StreamsPage'
 
 // Root route with the navbar layout
 const rootRoute = createRootRoute({
@@ -68,15 +72,43 @@ const pricingRoute = createRoute({
 // Blog route
 const blogRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/blog',
+  path: '/stream',
   component: () => (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-4">Blog</h1>
-      <p className="text-lg text-gray-600">
-        Read our latest blog posts and insights.
-      </p>
+    <StreamsPage/>
+  )
+})
+
+// Auth parent route - redirect to home if already authenticated
+const authRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/auth',
+  beforeLoad: () => {
+    const { isAuthenticated } = useAuthStore.getState()
+    if (isAuthenticated) {
+      throw redirect({ to: '/' })
+    }
+  },
+  component: () => (
+    <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[calc(100vh-200px)]">
+      <div className="w-full max-w-md">
+        <Outlet />
+      </div>
     </div>
   )
+})
+
+// Login route
+const loginRoute = createRoute({
+  getParentRoute: () => authRoute,
+  path: '/login',
+  component: () => <LoginPage />
+})
+
+// Register route
+const registerRoute = createRoute({
+  getParentRoute: () => authRoute,
+  path: '/register',
+  component: () => <RegisterPage />
 })
 
 // Create the route tree
@@ -85,7 +117,11 @@ const routeTree = rootRoute.addChildren([
   aboutRoute,
   productsRoute,
   pricingRoute,
-  blogRoute
+  blogRoute,
+  authRoute.addChildren([
+    loginRoute,
+    registerRoute
+  ])
 ])
 
 // Create the router
