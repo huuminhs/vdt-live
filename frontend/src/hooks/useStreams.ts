@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { streamService, type StreamsResponse, type StreamsParams } from '@/services/streamService'
+import { streamService, type StreamsResponse } from '@/services/streamService'
 
 interface UseStreamsOptions {
   limit?: number

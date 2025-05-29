@@ -64,12 +64,12 @@ export function CreateStreamPage() {
     if (checkTokenExpiry()) {
       setError("Phiên đăng nhập của bạn đã hết hạn. Vui lòng đăng nhập lại.")
       return
-    }
-
-    if (!authHeader) {
+    }    if (!authHeader) {
       setError("Bạn phải đăng nhập để tạo stream")
       return
-    }    setIsSubmitting(true)
+    }
+
+    setIsSubmitting(true)
     setError(null)
     
     try {
@@ -77,12 +77,11 @@ export function CreateStreamPage() {
       setResult(response)
       form.reset()
       
-      // Store stream data temporarily in localStorage and redirect
-      localStorage.setItem('currentStreamData', JSON.stringify(response))
+      // Navigate to live page with stream data in state
       router.navigate({ 
         to: "/stream/live",
-        state: {}
-       })
+        state: { streamData: response } as any
+      })
     } catch (err: any) {
       setError(
         err.response?.data?.message || 
