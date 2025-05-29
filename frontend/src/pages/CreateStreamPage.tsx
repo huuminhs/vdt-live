@@ -69,15 +69,20 @@ export function CreateStreamPage() {
     if (!authHeader) {
       setError("Bạn phải đăng nhập để tạo stream")
       return
-    }
-
-    setIsSubmitting(true)
+    }    setIsSubmitting(true)
     setError(null)
-
+    
     try {
       const response = await streamService.createStream(data, authHeader)
       setResult(response)
       form.reset()
+      
+      // Store stream data temporarily in localStorage and redirect
+      localStorage.setItem('currentStreamData', JSON.stringify(response))
+      router.navigate({ 
+        to: "/stream/live",
+        state: {}
+       })
     } catch (err: any) {
       setError(
         err.response?.data?.message || 

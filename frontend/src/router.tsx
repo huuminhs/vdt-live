@@ -4,6 +4,7 @@ import { Navbar1 } from './components/navbar1'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { CreateStreamPage } from './pages/CreateStreamPage'
+import { LivePage } from './pages/LivePage'
 import { useAuthStore } from './stores/authStore'
 import { StreamsPage } from './pages/StreamsPage'
 import TestPage from './pages/TestPage'
@@ -116,6 +117,38 @@ const createStreamRoute = createRoute({
   component: () => <CreateStreamPage />
 })
 
+// Live stream route - requires authentication
+const liveStreamRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/stream/live',
+  beforeLoad: () => {
+    const { isAuthenticated } = useAuthStore.getState()
+    if (!isAuthenticated) {
+      throw redirect({ to: '/auth/login' })
+    }
+  },
+  component: () => <LivePage />
+})
+
+// View stream route - no authentication required for viewers
+const viewStreamRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/stream/$streamId',
+  component: () => {
+    // This would be a viewer component for watching streams
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Xem Stream</h1>
+          <p className="text-gray-600">
+            Trang xem stream sẽ được phát triển trong tương lai.
+          </p>
+        </div>
+      </div>
+    )
+  }
+})
+
 const testRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/test',
@@ -130,6 +163,8 @@ const routeTree = rootRoute.addChildren([
   productsRoute,
   pricingRoute,
   createStreamRoute,
+  liveStreamRoute,
+  viewStreamRoute,
   authRoute.addChildren([
     loginRoute,
     registerRoute
