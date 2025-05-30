@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter, useRouterState } from "@tanstack/react-router"
-import { WHIPClient } from "@eyevinn/whip-web-client"
+import { WHIPClient } from "whip-whep/whip.js"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -27,7 +27,8 @@ export function LivePage() {
   const [videoKey, setVideoKey] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);  const mediaStreamRef = useRef<MediaStream | null>(null);
   const pendingStreamRef = useRef<MediaStream | null>(null);
-  const peerConnectionRef = useRef<RTCPeerConnection | WHIPClient | null>(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const whipClientRef = useRef<WHIPClient | null>(null);
   
   // Callback ref to handle video element creation
   const videoCallbackRef = (element: HTMLVideoElement | null) => {
@@ -127,8 +128,7 @@ export function LivePage() {
       video.removeEventListener('error', handleError)
       video.removeEventListener('loadstart', handleLoadStart)
     }
-  }, [])
-  // Cleanup effect when component unmounts
+  }, [])  // Cleanup effect when component unmounts
   useEffect(() => {
     return () => {
       // Clean up media stream when component unmounts
@@ -137,15 +137,16 @@ export function LivePage() {
       }
       
       // Clean up WHIP client when component unmounts
+      if (whipClientRef.current) {
+        whipClientRef.current.stop().catch((error: Error) => {
+          console.error('Error stopping WHIP client during cleanup:', error)
+        })
+        whipClientRef.current = null
+      }
+      
+      // Clean up peer connection when component unmounts
       if (peerConnectionRef.current) {
-        // Check if it's a WHIP client with destroy method
-        if ('destroy' in peerConnectionRef.current && typeof peerConnectionRef.current.destroy === 'function') {
-          peerConnectionRef.current.destroy().catch((error: Error) => {
-            console.error('Error destroying WHIP client during cleanup:', error)
-          })
-        } else if ('close' in peerConnectionRef.current && typeof peerConnectionRef.current.close === 'function') {
-          peerConnectionRef.current.close()
-        }
+        peerConnectionRef.current.close()
         peerConnectionRef.current = null
       }
     }
@@ -191,11 +192,12 @@ export function LivePage() {
       // Stop previous stream if exists
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop())
-      }
-
-      console.log('Requesting webcam access...')
+      }      console.log('Requesting webcam access...')
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
+        video: { 
+          width: { ideal: 1280 }, 
+          height: { ideal: 720 }
+        }, 
         audio: true 
       })
       console.log('Webcam access granted, setting up video...')
@@ -322,101 +324,203 @@ export function LivePage() {
     setIsCameraOn(true)
     setIsMicOn(true)
     setIsScreenSharing(false)
-    setIsVideoLoading(false)
-    
+    setIsVideoLoading(false)    
     console.log('All media stopped and states reset')
   }
-  const startBrowserStream = async () => {
+    const startBrowserStream = async () => {
+    console.log('mediaStreamRef.current', mediaStreamRef.current)
     if (!mediaStreamRef.current) return
     
     try {
       console.log('Starting WebRTC stream to:', webrtcUrl)
       console.log('Stream data:', streamData)
       
-      // Create WHIP client instance with proper configuration
-      const whipClient = new WHIPClient({
-        endpoint: webrtcUrl,
-        opts: {
-          debug: true,
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
-          ],
-          authkey: streamData.mediamtxJwt
+      // Create peer connection with optimal configuration for H.264
+      const pc = new RTCPeerConnection({
+        bundlePolicy: "max-bundle",
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      })
+      
+      // Store peer connection reference for cleanup
+      peerConnectionRef.current = pc
+      
+      // Configure H.264 codec preference before adding tracks
+      const setH264PreferenceOnTransceivers = () => {
+        try {
+          const capabilities = RTCRtpSender.getCapabilities('video')
+          if (capabilities && capabilities.codecs) {
+            const h264Codecs = capabilities.codecs.filter(codec => 
+              codec.mimeType.toLowerCase().includes('h264')
+            )
+            const otherCodecs = capabilities.codecs.filter(codec => 
+              !codec.mimeType.toLowerCase().includes('h264')
+            )
+            
+            if (h264Codecs.length > 0) {
+              const preferredCodecs = [...h264Codecs, ...otherCodecs]
+              console.log('H.264 codec available, will be preferred:', h264Codecs)
+              return preferredCodecs
+            }
+          }
+        } catch (error) {
+          console.log('Could not get video capabilities:', error)
         }
-      })
-      
-      // Store client reference for cleanup
-      peerConnectionRef.current = whipClient
-      
-      // Set up event listeners
-      whipClient.on('connected', () => {
-        console.log('WHIP client connected successfully!')
-        setIsStreaming(true)
-      })
-      
-      whipClient.on('disconnected', () => {
-        console.log('WHIP client disconnected')
-        setIsStreaming(false)
-      })
-      
-      whipClient.on('error', (error: Error) => {
-        console.error('WHIP client error:', error)
-        setIsStreaming(false)
-      })
-      
-      // Optionally set ICE servers from endpoint
-      try {
-        await whipClient.setIceServersFromEndpoint()
-      } catch (error) {
-        console.log('Could not get ICE servers from endpoint, using default ones:', error)
+        return null
       }
       
-      // Start ingesting the media stream
-      console.log('Starting media stream ingestion...')
-      await whipClient.ingest(mediaStreamRef.current)
+      const preferredCodecs = setH264PreferenceOnTransceivers()
+      
+      // Add all tracks from the media stream to the peer connection
+      for (const track of mediaStreamRef.current.getTracks()) {
+        console.log(`Adding ${track.kind} track to peer connection`)
+        const transceiver = pc.addTransceiver(track, { 
+          direction: 'sendonly'
+        })
+        
+        // Set H.264 codec preference on video transceivers
+        if (track.kind === 'video' && preferredCodecs) {
+          try {
+            transceiver.setCodecPreferences(preferredCodecs)
+            console.log('Set H.264 codec preference on video transceiver')
+          } catch (error) {
+            console.log('Could not set codec preferences on transceiver:', error)
+          }
+        }
+      }
+      
+      // Create WHIP client
+      const whipClient = new WHIPClient()
+      whipClientRef.current = whipClient
+      
+      // Hook into WHIP client's onOffer to modify SDP for H.264 preference
+      whipClient.onOffer = (sdp: string) => {
+        console.log('Original SDP offer generated')
+        const modifiedSdp = preferH264InSDP(sdp)
+        console.log('SDP modified to prefer H.264 codec')
+        return modifiedSdp
+      }
+      
+      // Listen for peer connection state changes
+      pc.onconnectionstatechange = () => {
+        console.log('Peer connection state:', pc.connectionState)
+        switch (pc.connectionState) {
+          case "connected":
+            console.log('WebRTC stream connected successfully!')
+            setIsStreaming(true)
+            break
+          case "disconnected":
+          case "failed":
+            console.log('WebRTC stream disconnected or failed')
+            setIsStreaming(false)
+            break
+          case "closed":
+            console.log('WebRTC stream closed')
+            setIsStreaming(false)
+            break
+        }
+      }
+      
+      // Helper function to modify SDP to prefer H.264
+      const preferH264InSDP = (sdp: string): string => {
+        const lines = sdp.split('\r\n')
+        let videoMLineIndex = -1
+        
+        // Find the video m-line
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].startsWith('m=video')) {
+            videoMLineIndex = i
+            break
+          }
+        }
+        
+        if (videoMLineIndex === -1) return sdp
+        
+        const mLine = lines[videoMLineIndex]
+        const codecNumbers = mLine.split(' ').slice(3)
+        
+        // Find H.264 payload types
+        const h264PayloadTypes: string[] = []
+        const otherPayloadTypes: string[] = []
+        
+        for (const codecNumber of codecNumbers) {
+          let isH264 = false
+          // Look for the rtpmap line for this codec
+          for (const line of lines) {
+            if (line.startsWith(`a=rtpmap:${codecNumber}`) && 
+                line.toLowerCase().includes('h264')) {
+              isH264 = true
+              break
+            }
+          }
+          
+          if (isH264) {
+            h264PayloadTypes.push(codecNumber)
+          } else {
+            otherPayloadTypes.push(codecNumber)
+          }
+        }
+        
+        // Reorder codec numbers to prefer H.264
+        if (h264PayloadTypes.length > 0) {
+          const reorderedCodecs = [...h264PayloadTypes, ...otherPayloadTypes]
+          const mLineParts = mLine.split(' ')
+          const newMLine = `${mLineParts[0]} ${mLineParts[1]} ${mLineParts[2]} ${reorderedCodecs.join(' ')}`
+          lines[videoMLineIndex] = newMLine
+          console.log('Reordered SDP codecs to prefer H.264')
+        }
+        
+        return lines.join('\r\n')
+      }
+      
+      // Start publishing to WHIP endpoint
+      console.log('Publishing stream to WHIP endpoint...')
+      await whipClient.publish(pc, webrtcUrl, streamData.mediamtxJwt)
       
       console.log('WebRTC streaming setup complete!')
       
     } catch (error) {
       console.error('Error starting WebRTC stream:', error)
       // Clean up on error
-      if (peerConnectionRef.current) {
+      if (whipClientRef.current) {
         try {
-          // Check if it's a WHIP client with destroy method
-          if ('destroy' in peerConnectionRef.current && typeof peerConnectionRef.current.destroy === 'function') {
-            await peerConnectionRef.current.destroy()
-          } else if ('close' in peerConnectionRef.current && typeof peerConnectionRef.current.close === 'function') {
-            peerConnectionRef.current.close()
-          }
+          await whipClientRef.current.stop()
         } catch (cleanupError) {
-          console.error('Error during cleanup:', cleanupError)
+          console.error('Error during WHIP client cleanup:', cleanupError)
         }
+        whipClientRef.current = null
+      }
+      
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close()
         peerConnectionRef.current = null
       }
-      setIsStreaming(false)
+        setIsStreaming(false)
     }
   }
+
   const stopBrowserStream = async () => {
     console.log('Stopping WebRTC stream')
     
     // Clean up WHIP client
-    if (peerConnectionRef.current) {
+    if (whipClientRef.current) {
       try {
-        // Check if it's a WHIP client with destroy method
-        if ('destroy' in peerConnectionRef.current && typeof peerConnectionRef.current.destroy === 'function') {
-          await peerConnectionRef.current.destroy()
-          console.log('WHIP client destroyed')
-        } else if ('close' in peerConnectionRef.current && typeof peerConnectionRef.current.close === 'function') {
-          peerConnectionRef.current.close()
-          console.log('Peer connection closed')
-        }
+        await whipClientRef.current.stop()
+        console.log('WHIP client stopped')
       } catch (error) {
-        console.error('Error during cleanup:', error)
+        console.error('Error stopping WHIP client:', error)
       }
-      peerConnectionRef.current = null
+      whipClientRef.current = null
     }
     
+    // Clean up peer connection
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close()
+      console.log('Peer connection closed')
+      peerConnectionRef.current = null
+    }    
     setIsStreaming(false)
   }
 
