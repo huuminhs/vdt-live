@@ -32,7 +32,7 @@ interface StreamCardWithActionsProps {
   status: 'LIVE' | 'ENDED' | 'CREATED'
   onClick?: () => void
   onEdit?: (title: string, description: string) => void
-  onDelete?: () => void
+  onDelete?: () => Promise<void>
 }
 
 export function StreamCardWithActions({ 
@@ -68,15 +68,28 @@ export function StreamCardWithActions({
   }
 
   const statusConfig = getStatusConfig(status)
-
   const handleEditSubmit = () => {
     onEdit?.(editTitle, editDescription)
     setIsEditDialogOpen(false)
   }
 
-  const handleDeleteConfirm = () => {
-    onDelete?.()
-    setIsDeleteDialogOpen(false)
+  const handleDeleteConfirm = async () => {
+    try {
+      const authHeader = getAuthHeader()
+      if (!authHeader) {
+        toast("Không có quyền truy cập. Vui lòng đăng nhập lại.")
+        setIsDeleteDialogOpen(false)
+        return
+      }
+
+      // Call the parent's onDelete callback which handles the API call
+      await onDelete?.()
+      
+      setIsDeleteDialogOpen(false)
+    } catch (error: any) {
+      console.error('Error deleting stream:', error)
+      setIsDeleteDialogOpen(false)
+    }
   }
 
   const handleStartStream = async () => {

@@ -52,7 +52,6 @@ export function MyStreamsPage() {
       toast.error('Không thể cập nhật stream')
     }
   }
-
   const handleDeleteStream = async (streamId: number) => {
     try {
       const authHeader = getAuthHeader()
@@ -67,9 +66,15 @@ export function MyStreamsPage() {
       queryClient.invalidateQueries({ queryKey: ['my-streams'] })
       
       toast.success('Xóa stream thành công!')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting stream:', error)
-      toast.error('Không thể xóa stream')
+      
+      // Handle different error responses
+      if (error.response?.status === 403) {
+        toast.error('Bạn không có quyền xóa stream này.')
+      } else {
+        toast.error('Không thể xóa stream. Vui lòng thử lại.')
+      }
     }
   }
   // Don't render anything if not authenticated (will redirect)
