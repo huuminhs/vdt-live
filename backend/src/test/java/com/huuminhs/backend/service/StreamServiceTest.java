@@ -386,4 +386,26 @@ public class StreamServiceTest {
         });
         verify(jwtTokenProvider, never()).generateMediaMtxToken(anyInt());
     }
+
+    @Test
+    void getAllStreams_WithCursor_Success() {
+        // Arrange
+        Stream stream1 = new Stream(10L, "Stream 10", "Description 10", LocalDateTime.now(), StreamStatus.CREATED, testUser);
+        Stream stream2 = new Stream(12L, "Stream 12", "Description 12", LocalDateTime.now(), StreamStatus.CREATED, testUser);
+        Stream stream3 = new Stream(8L, "Stream 8", "Description 8", LocalDateTime.now(), StreamStatus.CREATED, testUser);
+        Stream stream4 = new Stream(5L, "Stream 5", "Description 5", LocalDateTime.now(), StreamStatus.CREATED, testUser);
+
+        // Mock the repository to return streams when cursor = 10
+        when(streamRepository.findAllWithCursor(eq(10L), any())).thenReturn(Arrays.asList(stream3, stream4));
+
+        // Act
+        PaginatedResponse<StreamResponse> response = streamService.getAllStreams(10L, 2);
+
+        // Assert
+        assertEquals(2, response.getItems().size());
+        assertEquals("Stream 8", response.getItems().get(0).getTitle());
+        assertEquals("Stream 5", response.getItems().get(1).getTitle());
+        assertFalse(response.isHasMore());
+        assertNull(response.getNextCursor());
+    }
 }

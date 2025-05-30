@@ -18,17 +18,30 @@ public interface StreamRepository extends JpaRepository<Stream, Long> {
     List<Stream> findByStatus(StreamStatus status);
 
     // Cursor-based pagination methods
-    @Query("SELECT s FROM Stream s WHERE s.id > :cursor ORDER BY " +
-           "s.status ASC," +
-           "s.createdAt DESC")
+    @Query("SELECT s FROM Stream s WHERE (s.status > (SELECT s2.status FROM Stream s2 WHERE s2.id = :cursor)) OR " +
+           "(s.status = (SELECT s2.status FROM Stream s2 WHERE s2.id = :cursor) AND " +
+           "s.createdAt < (SELECT s2.createdAt FROM Stream s2 WHERE s2.id = :cursor)) OR " +
+           "(s.status = (SELECT s2.status FROM Stream s2 WHERE s2.id = :cursor) AND " +
+           "s.createdAt = (SELECT s2.createdAt FROM Stream s2 WHERE s2.id = :cursor) AND " +
+           "s.id < :cursor) " +
+           "ORDER BY s.status ASC, s.createdAt DESC, s.id DESC")
     List<Stream> findAllWithCursor(@Param("cursor") Long cursor, Pageable pageable);
 
-    @Query("SELECT s FROM Stream s WHERE s.id > :cursor AND s.user = :user ORDER BY " +
-            "s.status ASC," +
-            "s.createdAt DESC")
+    @Query("SELECT s FROM Stream s WHERE s.user = :user AND " +
+           "((s.status > (SELECT s2.status FROM Stream s2 WHERE s2.id = :cursor)) OR " +
+           "(s.status = (SELECT s2.status FROM Stream s2 WHERE s2.id = :cursor) AND " +
+           "s.createdAt < (SELECT s2.createdAt FROM Stream s2 WHERE s2.id = :cursor)) OR " +
+           "(s.status = (SELECT s2.status FROM Stream s2 WHERE s2.id = :cursor) AND " +
+           "s.createdAt = (SELECT s2.createdAt FROM Stream s2 WHERE s2.id = :cursor) AND " +
+           "s.id < :cursor)) " +
+           "ORDER BY s.status ASC, s.createdAt DESC, s.id DESC")
     List<Stream> findByUserWithCursor(@Param("cursor") Long cursor, @Param("user") User user, Pageable pageable);
 
-    @Query("SELECT s FROM Stream s WHERE s.id > :cursor AND s.status = :status ORDER BY s.createdAt DESC")
+    @Query("SELECT s FROM Stream s WHERE s.status = :status AND " +
+           "((s.createdAt < (SELECT s2.createdAt FROM Stream s2 WHERE s2.id = :cursor)) OR " +
+           "(s.createdAt = (SELECT s2.createdAt FROM Stream s2 WHERE s2.id = :cursor) AND " +
+           "s.id < :cursor)) " +
+           "ORDER BY s.createdAt DESC, s.id DESC")
     List<Stream> findByStatusWithCursor(@Param("cursor") Long cursor, @Param("status") StreamStatus status, Pageable pageable);
 
     // Methods for first page (no cursor)

@@ -13,7 +13,7 @@ export function StreamsPage() {
     isFetchingNextPage,
     isLoading,
     isError,
-  } = useStreams({ limit: 12 })
+  } = useStreams({ limit: 6 })
 
   const handleStreamClick = (streamId: number) => {
     console.log(`Clicked on stream ${streamId}`)

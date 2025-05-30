@@ -6,7 +6,7 @@ interface UseStreamsOptions {
 }
 
 export function useStreams(options: UseStreamsOptions = {}) {
-  const { limit = 12 } = options
+  const { limit = 6 } = options
 
   return useInfiniteQuery<StreamsResponse, Error>({
     queryKey: ['streams', { limit }],
