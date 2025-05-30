@@ -34,7 +34,7 @@ export function StreamsPage() {
   if (isError) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Live Streams</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Khám phá live</h1>
         <div className="flex justify-center items-center min-h-[200px]">
           <div className="text-center">
             <p className="text-red-600 mb-4">
@@ -52,7 +52,7 @@ export function StreamsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Live Streams</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Khám phá live</h1>
       
       {allStreams.length === 0 ? (
         <div className="flex justify-center items-center min-h-[200px]">

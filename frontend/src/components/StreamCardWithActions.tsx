@@ -22,6 +22,7 @@ import {
 import { MoreVertical, Edit, Trash2, Play } from "lucide-react"
 import { streamService } from "@/services/streamService"
 import { useAuthStore } from "@/stores/authStore"
+import { Textarea } from "./ui/textarea"
 
 interface StreamCardWithActionsProps {
   streamId: number
@@ -31,7 +32,7 @@ interface StreamCardWithActionsProps {
   username: string
   status: 'LIVE' | 'ENDED' | 'CREATED'
   onClick?: () => void
-  onEdit?: (title: string, description: string) => void
+  onEdit?: (title: string, description: string) => void // Optional callback for UI updates after successful edit
   onDelete?: () => Promise<void>
 }
 
@@ -66,11 +67,42 @@ export function StreamCardWithActions({
         return { color: 'bg-gray-600', text: status }
     }
   }
-
   const statusConfig = getStatusConfig(status)
-  const handleEditSubmit = () => {
-    onEdit?.(editTitle, editDescription)
-    setIsEditDialogOpen(false)
+
+  const handleEditSubmit = async () => {
+    try {
+      const authHeader = getAuthHeader()
+      if (!authHeader) {
+        toast("Không có quyền truy cập. Vui lòng đăng nhập lại.")
+        setIsEditDialogOpen(false)
+        return
+      }
+
+      // Call the API to update the stream
+      await streamService.updateStream(streamId, {
+        title: editTitle,
+        description: editDescription
+      }, authHeader)
+      
+      // Show success toast
+      toast("Cập nhật stream thành công!")
+      
+      // Call the parent's onEdit callback if provided (for UI updates)
+      onEdit?.(editTitle, editDescription)
+      
+      setIsEditDialogOpen(false)
+    } catch (error: any) {
+      console.error('Error updating stream:', error)
+      
+      // Handle different error responses
+      if (error.response?.status === 403) {
+        toast("Bạn không có quyền chỉnh sửa stream này.")
+      } else {
+        toast("Không thể cập nhật stream. Vui lòng thử lại.")
+      }
+      
+      setIsEditDialogOpen(false)
+    }
   }
 
   const handleDeleteConfirm = async () => {
@@ -204,7 +236,7 @@ export function StreamCardWithActions({
             
             <div className="space-y-2">
               <Label htmlFor="edit-description">Mô tả</Label>
-              <Input
+              <Textarea
                 id="edit-description"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
