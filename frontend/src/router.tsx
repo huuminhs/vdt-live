@@ -6,6 +6,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { CreateStreamPage } from './pages/CreateStreamPage'
 import { LivePage } from './pages/LivePage'
 import { MyStreamsPage } from './pages/MyStreamsPage'
+import { WatchStreamPage } from './pages/WatchStreamPage'
 import { useAuthStore } from './stores/authStore'
 import { StreamsPage } from './pages/StreamsPage'
 import TestPage from './pages/TestPage'
@@ -136,7 +137,7 @@ const liveStreamRoute = createRoute({
 // My streams route - requires authentication
 const myStreamsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/my-streams',
+  path: '/stream/mine',
   beforeLoad: () => {
     const { isAuthenticated } = useAuthStore.getState()
     if (!isAuthenticated) {
@@ -146,23 +147,11 @@ const myStreamsRoute = createRoute({
   component: () => <MyStreamsPage />
 })
 
-// View stream route - no authentication required for viewers
-const viewStreamRoute = createRoute({
+// Watch stream route - no authentication required for viewers
+const watchStreamRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/stream/$streamId',
-  component: () => {
-    // This would be a viewer component for watching streams
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Xem Stream</h1>
-          <p className="text-gray-600">
-            Trang xem stream sẽ được phát triển trong tương lai.
-          </p>
-        </div>
-      </div>
-    )
-  }
+  path: '/stream/watch/$streamId',
+  component: () => <WatchStreamPage />
 })
 
 const testRoute = createRoute({
@@ -178,10 +167,9 @@ const routeTree = rootRoute.addChildren([
   testRoute,
   productsRoute,
   pricingRoute,
-  createStreamRoute,
-  liveStreamRoute,
+  createStreamRoute,  liveStreamRoute,
   myStreamsRoute,
-  viewStreamRoute,
+  watchStreamRoute,
   authRoute.addChildren([
     loginRoute,
     registerRoute

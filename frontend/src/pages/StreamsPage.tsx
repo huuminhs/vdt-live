@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
 import type { StreamsResponse } from "@/services/streamService"
 import { StreamCardWithActions } from "@/components/StreamCardWithActions"
+import { useNavigate } from "@tanstack/react-router"
 
 export function StreamsPage() {
+  const navigate = useNavigate()
   const {
     data,
     error,
@@ -16,8 +18,7 @@ export function StreamsPage() {
   } = useStreams({ limit: 6 })
 
   const handleStreamClick = (streamId: number) => {
-    console.log(`Clicked on stream ${streamId}`)
-    // Handle navigation to stream page
+    navigate({ to: '/stream/watch/$streamId', params: { streamId: streamId.toString() } })
   }
 
   if (isLoading) {

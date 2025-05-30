@@ -27,20 +27,17 @@ export function MyStreamsPage() {
     if (!isAuthenticated) {
       navigate({ to: "/auth/login" });
     }
-  }, [isAuthenticated, navigate]);
-  const handleStreamClick = (streamId: number) => {
-    console.log(`Clicked on stream ${streamId}`);
-    // Handle navigation to stream page
+  }, [isAuthenticated, navigate]);  const handleStreamClick = (streamId: number) => {
+    navigate({ to: '/stream/watch/$streamId', params: { streamId: streamId.toString() } })
   };
 
   const handleEditStream = (
     _streamId: number,
     _title: string,
     _description: string
-  ) => {
-    // This callback is called after successful edit by StreamCardWithActions
+  ) => {    // This callback is called after successful edit by StreamCardWithActions
     // We just need to refresh the data
-    queryClient.invalidateQueries({ queryKey: ["my-streams"] });
+    queryClient.invalidateQueries({ queryKey: ["stream-mine"] });
   };
   const handleDeleteStream = async (streamId: number) => {
     try {
@@ -50,10 +47,8 @@ export function MyStreamsPage() {
         return;
       }
 
-      await streamService.deleteStream(streamId, authHeader);
-
-      // Invalidate and refetch the streams data
-      queryClient.invalidateQueries({ queryKey: ["my-streams"] });
+      await streamService.deleteStream(streamId, authHeader);      // Invalidate and refetch the streams data
+      queryClient.invalidateQueries({ queryKey: ["stream-mine"] });
 
       toast.success("Xóa stream thành công!");
     } catch (error: any) {

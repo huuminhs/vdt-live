@@ -38,6 +38,14 @@ export interface UpdateStreamRequest {
 }
 
 export const streamService = {
+  async getStreamById(streamId: number): Promise<Stream> {
+    const response = await axios.get<Stream>(
+      `${API_BASE_URL}/stream/${streamId}`
+    )
+    
+    return response.data
+  },
+
   async getStreams(params: StreamsParams = {}): Promise<StreamsResponse> {
     const searchParams = new URLSearchParams()
     

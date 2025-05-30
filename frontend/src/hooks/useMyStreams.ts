@@ -9,9 +9,8 @@ interface UseMyStreamsOptions {
 export function useMyStreams(options: UseMyStreamsOptions = {}) {
   const { limit = 6 } = options
   const { getAuthHeader, isAuthenticated } = useAuthStore()
-
   return useInfiniteQuery<StreamsResponse, Error>({
-    queryKey: ['my-streams', { limit }],
+    queryKey: ['stream-mine', { limit }],
     queryFn: ({ pageParam }) => {
       const authHeader = getAuthHeader()
       if (!authHeader) {
