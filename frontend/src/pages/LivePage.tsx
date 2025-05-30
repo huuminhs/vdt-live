@@ -312,13 +312,141 @@ export function LivePage() {
       }
       setIsVideoLoading(false);
     }
+  };  const replaceStreamTracks = async (newStream: MediaStream) => {
+    if (!peerConnectionRef.current) return;
+
+    const pc = peerConnectionRef.current;
+    const senders = pc.getSenders();
+
+    // Replace existing tracks with new ones
+    for (const sender of senders) {
+      if (sender.track) {
+        const trackKind = sender.track.kind;
+        const newTrack = newStream.getTracks().find(track => track.kind === trackKind);
+        
+        if (newTrack) {
+          try {
+            await sender.replaceTrack(newTrack);
+            console.log(`Replaced ${trackKind} track in peer connection`);
+          } catch (error) {
+            console.error(`Error replacing ${trackKind} track:`, error);
+          }
+        }
+      }
+    }
   };
+
+  const switchToWebcam = async () => {
+    if (isStreaming) {
+      setIsVideoLoading(true);
+      setVideoKey((k) => k + 1);
+      
+      try {
+        // Stop previous stream
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current
+            .getTracks()
+            .forEach((track: MediaStreamTrack) => track.stop());
+        }
+
+        // Get new webcam stream
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: true,
+        });
+
+        mediaStreamRef.current = stream;
+        setIsCameraOn(true);
+        setIsMicOn(true);
+        setIsScreenSharing(false);
+
+        // Update video element
+        if (videoRef.current) {
+          await setupVideoStream(videoRef.current, stream);
+        } else {
+          pendingStreamRef.current = stream;
+        }
+
+        // Replace tracks in existing peer connection
+        await replaceStreamTracks(stream);
+        
+        console.log("Successfully switched to webcam while streaming");
+      } catch (error) {
+        console.error("Error switching to webcam:", error);
+        setIsVideoLoading(false);
+      }
+    } else {
+      // Not streaming, just start webcam normally
+      await startWebcam();
+    }
+  };
+
+  const switchToScreenShare = async () => {
+    if (isStreaming) {
+      setIsVideoLoading(true);
+      setVideoKey((k) => k + 1);
+      
+      try {
+        // Stop previous stream
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current
+            .getTracks()
+            .forEach((track: MediaStreamTrack) => track.stop());
+        }
+
+        // Get new screen share stream
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: true,
+        });
+
+        mediaStreamRef.current = stream;
+        setIsScreenSharing(true);
+        setIsCameraOn(false);
+        setIsMicOn(true);
+
+        // Update video element
+        if (videoRef.current) {
+          await setupVideoStream(videoRef.current, stream);
+        } else {
+          pendingStreamRef.current = stream;
+        }
+
+        // Replace tracks in existing peer connection
+        await replaceStreamTracks(stream);
+
+        // Handle screen share end
+        stream.getVideoTracks()[0].addEventListener("ended", () => {
+          setIsScreenSharing(false);
+          if (!isStreaming) {
+            setHasPermission(null);
+            setIsVideoLoading(false);
+            if (videoRef.current) {
+              videoRef.current.srcObject = null;
+            }
+          }
+        });
+        
+        console.log("Successfully switched to screen share while streaming");
+      } catch (error) {
+        console.error("Error switching to screen share:", error);
+        setIsVideoLoading(false);
+      }
+    } else {
+      // Not streaming, just start screen share normally
+      await startScreenShare();
+    }
+  };
+
   const toggleCamera = async () => {
     if (!hasPermission) return;
 
     if (isScreenSharing) {
       // Switch from screen share to camera
-      await startWebcam();
+      await switchToWebcam();
     } else {
       // Toggle camera on/off
       if (mediaStreamRef.current) {
@@ -863,10 +991,8 @@ export function LivePage() {
                             : isCameraOn
                             ? "Camera"
                             : "Bật Camera"}
-                        </Button>
-
-                        <Button
-                          onClick={startScreenShare}
+                        </Button>                        <Button
+                          onClick={isStreaming ? switchToScreenShare : startScreenShare}
                           disabled={isVideoLoading}
                           variant={isScreenSharing ? "default" : "outline"}
                           size="sm"
