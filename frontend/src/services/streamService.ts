@@ -32,6 +32,11 @@ export interface CreateStreamResponse {
   mediamtxJwt: string
 }
 
+export interface UpdateStreamRequest {
+  title: string
+  description: string
+}
+
 export const streamService = {
   async getStreams(params: StreamsParams = {}): Promise<StreamsResponse> {
     const searchParams = new URLSearchParams()
@@ -51,6 +56,28 @@ export const streamService = {
     return response.data
   },
 
+  async getMyStreams(params: StreamsParams = {}, authHeader: string): Promise<StreamsResponse> {
+    const searchParams = new URLSearchParams()
+    
+    if (params.cursor) {
+      searchParams.append('cursor', params.cursor)
+    }
+
+    if (params.limit) {
+      searchParams.append('limit', params.limit.toString())
+    }
+
+    const response = await axios.get<StreamsResponse>(
+      `${API_BASE_URL}/stream/mine?${searchParams.toString()}`,
+      {
+        headers: {
+          'Authorization': authHeader
+        }
+      }
+    )
+    
+    return response.data
+  },
   async createStream(
     data: CreateStreamRequest, 
     authHeader: string
@@ -62,6 +89,53 @@ export const streamService = {
         headers: {
           'Authorization': authHeader,
           'Content-Type': 'application/json'
+        }
+      }
+    )
+    
+    return response.data
+  },
+
+  async updateStream(
+    streamId: number,
+    data: UpdateStreamRequest, 
+    authHeader: string
+  ): Promise<void> {
+    await axios.put(
+      `${API_BASE_URL}/stream/${streamId}`,
+      data,
+      {
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+  },
+
+  async deleteStream(
+    streamId: number,
+    authHeader: string
+  ): Promise<void> {
+    await axios.delete(
+      `${API_BASE_URL}/stream/${streamId}`,
+      {
+        headers: {
+          'Authorization': authHeader
+        }
+      }
+    )
+  },
+
+  async getStreamJwt(
+    streamId: number,
+    authHeader: string
+  ): Promise<CreateStreamResponse> {
+    const response = await axios.get<CreateStreamResponse>(
+      `${API_BASE_URL}/stream/${streamId}/jwt`,
+      {
+        headers: {
+          'Authorization': authHeader
         }
       }
     )

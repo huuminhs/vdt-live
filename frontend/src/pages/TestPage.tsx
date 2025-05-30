@@ -1,18 +1,18 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { StreamCardWithActions } from "@/components/StreamCardWithActions";
+import Thumbnail from "@/assets/stream.jpg"
 
 export default function TestPage() {
-  return (
-    <div className="flex items-center justify-center h-screen">
-      <Tabs defaultValue="account" className="w-[400px]">
-        <TabsList>
-          <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="password" disabled>Password</TabsTrigger>
-        </TabsList>
-        <TabsContent value="account">
-          Make changes to your account here.
-        </TabsContent>
-        <TabsContent value="password">Change your password here.</TabsContent>
-      </Tabs>
+  return (    <div className="flex items-center justify-center h-screen">      <StreamCardWithActions
+        streamId={1}
+        thumbnail={Thumbnail}
+        title="Test Streamggdsgsgds"
+        description="This is a test stream description."
+        username="testuser"
+        status="LIVE"
+        onClick={() => console.log("Stream clicked")}
+        onEdit={(title, description) => console.log("Edit:", title, description)}
+        onDelete={() => console.log("Stream deleted")}
+      />
     </div>
   );
 }

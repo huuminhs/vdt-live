@@ -1,8 +1,8 @@
-import { StreamCard } from "../components/StreamCard"
 import { useStreams } from "../hooks/useStreams"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
 import type { StreamsResponse } from "@/services/streamService"
+import { StreamCardWithActions } from "@/components/StreamCardWithActions"
 
 export function StreamsPage() {
   const {
@@ -13,7 +13,7 @@ export function StreamsPage() {
     isFetchingNextPage,
     isLoading,
     isError,
-  } = useStreams({ limit: 10 })
+  } = useStreams({ limit: 6 })
 
   const handleStreamClick = (streamId: number) => {
     console.log(`Clicked on stream ${streamId}`)
@@ -62,8 +62,9 @@ export function StreamsPage() {
         <>
           {/* Streams Grid */}          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {allStreams.map((stream) => (
-              <StreamCard
+              <StreamCardWithActions
                 key={stream.streamId}
+                streamId={stream.streamId}
                 thumbnail="/src/assets/stream.jpg" // Using placeholder as mentioned
                 title={stream.title}
                 username={stream.creator} // Using creator field from API
@@ -87,7 +88,7 @@ export function StreamsPage() {
                     Loading...
                   </>
                 ) : (
-                  'Load More'
+                  'Tải thêm'
                 )}
               </Button>
             </div>

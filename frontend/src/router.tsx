@@ -5,9 +5,11 @@ import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { CreateStreamPage } from './pages/CreateStreamPage'
 import { LivePage } from './pages/LivePage'
+import { MyStreamsPage } from './pages/MyStreamsPage'
 import { useAuthStore } from './stores/authStore'
 import { StreamsPage } from './pages/StreamsPage'
 import TestPage from './pages/TestPage'
+import { Toaster } from './components/ui/sonner'
 
 // Root route with the navbar layout
 const rootRoute = createRootRoute({
@@ -16,6 +18,7 @@ const rootRoute = createRootRoute({
       <Navbar1/>
       <main>
         <Outlet />
+        <Toaster />
       </main>
       {process.env.NODE_ENV === 'development' && <TanStackRouterDevtools />}
     </div>
@@ -130,6 +133,19 @@ const liveStreamRoute = createRoute({
   component: () => <LivePage />
 })
 
+// My streams route - requires authentication
+const myStreamsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/my-streams',
+  beforeLoad: () => {
+    const { isAuthenticated } = useAuthStore.getState()
+    if (!isAuthenticated) {
+      throw redirect({ to: '/auth/login' })
+    }
+  },
+  component: () => <MyStreamsPage />
+})
+
 // View stream route - no authentication required for viewers
 const viewStreamRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -164,6 +180,7 @@ const routeTree = rootRoute.addChildren([
   pricingRoute,
   createStreamRoute,
   liveStreamRoute,
+  myStreamsRoute,
   viewStreamRoute,
   authRoute.addChildren([
     loginRoute,

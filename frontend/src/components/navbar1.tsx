@@ -75,7 +75,7 @@ const Navbar1 = ({
   const menuWithAuth = isAuthenticated 
     ? [
         ...menu, 
-        { title: "Live của tôi", url: "/" },
+        { title: "Live của tôi", url: "/my-streams" },
         { title: "Tạo live", url: "/stream/create" },
         { title: "Tài khoản", url: "#" }
       ]
