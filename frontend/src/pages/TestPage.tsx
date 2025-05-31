@@ -11,7 +11,7 @@ export default function TestPage() {
         status="LIVE"
         onClick={() => console.log("Stream clicked")}
         onEdit={(title, description) => console.log("Edit:", title, description)}
-        onDelete={() => console.log("Stream deleted")}
+        onDelete={async () => console.log("Stream deleted")}
       />
     </div>
   );

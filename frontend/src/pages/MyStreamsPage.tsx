@@ -8,6 +8,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import Thumbnail from "@/assets/stream.jpg";
 
 export function MyStreamsPage() {
   const navigate = useNavigate();
@@ -128,7 +129,7 @@ export function MyStreamsPage() {
               <StreamCardWithActions
                 key={stream.streamId}
                 streamId={stream.streamId}
-                thumbnail="/src/assets/stream.jpg" // Using placeholder as mentioned
+                thumbnail={Thumbnail} // Using placeholder as mentioned
                 title={stream.title}
                 description={stream.description}
                 username={stream.creator} // Using creator field from API

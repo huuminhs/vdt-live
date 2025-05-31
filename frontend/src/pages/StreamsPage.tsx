@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react"
 import type { StreamsResponse } from "@/services/streamService"
 import { StreamCardWithActions } from "@/components/StreamCardWithActions"
 import { useNavigate } from "@tanstack/react-router"
+import Thumbnail from "@/assets/stream.jpg"
 
 export function StreamsPage() {
   const navigate = useNavigate()
@@ -66,7 +67,7 @@ export function StreamsPage() {
               <StreamCardWithActions
                 key={stream.streamId}
                 streamId={stream.streamId}
-                thumbnail="/src/assets/stream.jpg" // Using placeholder as mentioned
+                thumbnail={Thumbnail} // Using placeholder as mentioned
                 title={stream.title}
                 username={stream.creator} // Using creator field from API
                 status={stream.status}
