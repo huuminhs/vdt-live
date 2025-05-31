@@ -103,7 +103,7 @@ services:
       - "8888:8888"     # HLS
       - "8889:8889"     # HTTP API
       - "8890:8890/udp" # WebRTC Data
-      - "8189:8189/udp" # WebRTC Control
+      - "8189:8189/tcp" # WebRTC Control
     volumes:
       - ./mediamtx.yml:/mediamtx.yml
     networks:

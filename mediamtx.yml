@@ -368,11 +368,13 @@ webrtcAllowOrigin: '*'
 webrtcTrustedProxies: []
 # Address of a local UDP listener that will receive connections.
 # Use a blank string to disable.
-webrtcLocalUDPAddress: :8189
+webrtcLocalUDPAddress: ''
+#:8189
 # Address of a local TCP listener that will receive connections.
 # This is disabled by default since TCP is less efficient than UDP and
 # introduces a progressive delay when network is congested.
-webrtcLocalTCPAddress: ''
+webrtcLocalTCPAddress: :8189
+#''
 # WebRTC clients need to know the IP of the server.
 # Gather IPs from interfaces and send them to clients.
 webrtcIPsFromInterfaces: yes
@@ -662,13 +664,13 @@ pathDefaults:
   # * RTSP_PORT: RTSP server port
   # * G1, G2, ...: regular expression groups, if path name is
   #   a regular expression.
-  runOnReady: curl -X PUT http://host.docker.internal:8080/api/$MTX_PATH/ended
+  runOnReady: curl -X PUT http://backend:8080/api/$MTX_PATH/live
   # Restart the command if it exits.
   runOnReadyRestart: no
   # Command to run when the stream is not available anymore.
   # Environment variables are the same of runOnReady.
   runOnNotReady:  
-    curl -X PUT http://host.docker.internal:8080/api/$MTX_PATH/ended
+    curl -X PUT http://backend:8080/api/$MTX_PATH/ended
 
   # Command to run when a client starts reading.
   # This is terminated with SIGINT when a client stops reading.
