@@ -1,8 +1,9 @@
 import axios from 'axios';
 import type { AxiosResponse } from 'axios';
+import { config } from '../config';
 
 // Base API URL
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = config.apiBaseUrl;
 
 // Types for the API requests and responses
 export interface LoginRequest {

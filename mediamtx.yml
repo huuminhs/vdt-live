@@ -662,13 +662,13 @@ pathDefaults:
   # * RTSP_PORT: RTSP server port
   # * G1, G2, ...: regular expression groups, if path name is
   #   a regular expression.
-  runOnReady:
+  runOnReady: curl -X PUT http://localhost:8080/api/$MTX_PATH/live
   # Restart the command if it exits.
   runOnReadyRestart: no
   # Command to run when the stream is not available anymore.
   # Environment variables are the same of runOnReady.
   runOnNotReady:  
-    # curl -X PUT http://localhost:8080/api/auth/login/$MTX_PATH/hi
+    curl -X PUT http://localhost:8080/api/$MTX_PATH/ended
 
   # Command to run when a client starts reading.
   # This is terminated with SIGINT when a client stops reading.
