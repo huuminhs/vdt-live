@@ -46,7 +46,7 @@ runOnDisconnect:
 # * internal: users are stored in the configuration file
 # * http: an external HTTP URL is contacted to perform authentication
 # * jwt: an external identity server provides authentication through JWTs
-authMethod: internal
+authMethod: jwt
 
 # Internal authentication.
 # list of users.
@@ -122,7 +122,7 @@ authHTTPExclude:
 # Users are expected to pass the JWT in the Authorization header or as a query parameter.
 # This is the JWKS URL that will be used to pull (once) the public key that allows
 # to validate JWTs.
-authJWTJWKS: http://localhost:8080/api/publish/jwks
+authJWTJWKS: http://backend:8080/api/publish/jwks
 # name of the claim that contains permissions.
 authJWTClaimKey: mediamtx_permissions
 # Actions to exclude from JWT-based authentication.
@@ -662,13 +662,13 @@ pathDefaults:
   # * RTSP_PORT: RTSP server port
   # * G1, G2, ...: regular expression groups, if path name is
   #   a regular expression.
-  runOnReady: curl -X PUT http://localhost:8080/api/$MTX_PATH/live
+  runOnReady: curl -X PUT http://host.docker.internal:8080/api/$MTX_PATH/ended
   # Restart the command if it exits.
   runOnReadyRestart: no
   # Command to run when the stream is not available anymore.
   # Environment variables are the same of runOnReady.
   runOnNotReady:  
-    curl -X PUT http://localhost:8080/api/$MTX_PATH/ended
+    curl -X PUT http://host.docker.internal:8080/api/$MTX_PATH/ended
 
   # Command to run when a client starts reading.
   # This is terminated with SIGINT when a client stops reading.

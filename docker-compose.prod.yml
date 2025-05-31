@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: vdt-postgres-prod
+    environment:
+      POSTGRES_DB: vdt_live
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - vdt-prod-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  # Backend Service
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vdt-backend-prod
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/vdt_live
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-admin}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+      - SERVER_PORT=8080
+      - STREAM_URL_BASE=mediamtx
+      - SPRING_PROFILES_ACTIVE=prod
+      - JWT_SECRET=${JWT_SECRET}
+    ports:
+      - "8080:8080"
+    volumes:
+      - backend_prod_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vdt-prod-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: always
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - VITE_API_BASE_URL=${FRONTEND_API_URL:-http://localhost:8080}
+        - VITE_STREAM_SERVER_URL=${FRONTEND_STREAM_URL:-http://localhost:8889}
+    container_name: vdt-frontend-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - vdt-prod-network
+    depends_on:
+      - backend
+    restart: always  # MediaMTX Streaming Server
+  mediamtx:
+    build:
+      context: .
+      dockerfile: Dockerfile.mediamtx
+    container_name: vdt-mediamtx-prod
+    ports:
+      - "8554:8554"   # RTSP
+      - "1935:1935"   # RTMP
+      - "8888:8888"   # HLS
+      - "8889:8889"   # HTTP API
+      - "8890:8890/udp" # WebRTC Data
+      - "8189:8189/udp" # WebRTC Control
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml
+    networks:
+      - vdt-prod-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8889/v1/config"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: always
+
+volumes:
+  postgres_prod_data:
+    driver: local
+  backend_prod_uploads:
+    driver: local
+
+networks:
+  vdt-prod-network:
+    driver: bridge

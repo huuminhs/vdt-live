@@ -1,0 +1,34 @@
+# Custom MediaMTX image with curl for webhook calls
+# Using different approach - building MediaMTX on Alpine base with curl
+
+FROM alpine:3.19
+
+# Install curl and other necessary packages
+RUN apk add --no-cache curl ca-certificates jq
+
+# Download and install MediaMTX
+RUN MEDIAMTX_VERSION=$(wget -qO- https://api.github.com/repos/bluenviron/mediamtx/releases/latest | grep -o '"tag_name": "[^"]*' | grep -o '[^"]*$') && \
+    wget -O /tmp/mediamtx.tar.gz "https://github.com/bluenviron/mediamtx/releases/latest/download/mediamtx_${MEDIAMTX_VERSION}_linux_amd64.tar.gz" && \
+    tar -xzf /tmp/mediamtx.tar.gz -C /tmp && \
+    mv /tmp/mediamtx /usr/local/bin/mediamtx && \
+    chmod +x /usr/local/bin/mediamtx && \
+    rm -rf /tmp/mediamtx.tar.gz
+
+# Create mediamtx user
+RUN adduser -D -s /bin/sh mediamtx
+
+# Create necessary directories
+RUN mkdir -p /etc/mediamtx /recordings && \
+    chown -R mediamtx:mediamtx /etc/mediamtx /recordings
+
+# Switch to mediamtx user
+USER mediamtx
+
+# Expose the necessary ports
+EXPOSE 8554 1935 8888 8889 8890/udp 8189/udp
+
+# Set the working directory
+WORKDIR /
+
+# Use the same entrypoint as the original image
+ENTRYPOINT ["/usr/local/bin/mediamtx"]

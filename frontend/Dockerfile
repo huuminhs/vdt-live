@@ -19,6 +19,14 @@ COPY . .
 # Build stage
 FROM base AS build
 
+# Accept build arguments for environment variables
+ARG VITE_API_BASE_URL
+ARG VITE_STREAM_SERVER_URL
+
+# Set environment variables from build args
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_STREAM_SERVER_URL=$VITE_STREAM_SERVER_URL
+
 # Build the application
 RUN pnpm run build
 
@@ -39,6 +47,14 @@ CMD ["nginx", "-g", "daemon off;"]
 
 # Development stage (for development mode)
 FROM base AS development
+
+# Accept build arguments for environment variables
+ARG VITE_API_BASE_URL
+ARG VITE_STREAM_SERVER_URL
+
+# Set environment variables from build args
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_STREAM_SERVER_URL=$VITE_STREAM_SERVER_URL
 
 # Expose port 5173 (default Vite dev server port)
 EXPOSE 5173
