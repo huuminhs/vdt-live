@@ -87,28 +87,24 @@ services:
       - backend
     restart: unless-stopped
     profiles:
-      - production  # Traefik Load Balancer
-  traefik:
-    image: traefik:v3.0
-    container_name: vdt-traefik
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.rtmp.address=:1935"
-      - "--entrypoints.hls.address=:8888"
-      - "--entrypoints.whip.address=:8889"
-      - "--entrypoints.webrtc.address=:8189"
+      - production  # HAProxy Load Balancer with Intelligent Stream Routing
+  haproxy:
+    image: haproxy:2.8
+    container_name: vdt-haproxy
     ports:
-      - "8090:8080"     # Traefik Dashboard (moved to avoid backend conflict)
+      - "8404:8404"     # HAProxy Stats Dashboard
       - "1935:1935"     # RTMP Load Balancer
-      - "8888:8888"     # HLS Load Balancer
-      - "8889:8889"     # WHIP Load Balancer
+      - "8888:8888"     # HLS Load Balancer with Intelligent Routing
+      - "8889:8889"     # WHIP Load Balancer with Sticky Sessions
       - "8189:8189"     # WebRTC TCP Load Balancer
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./haproxy-stream-router.lua:/usr/local/etc/haproxy/stream-router.lua:ro
     networks:
       - vdt-network
+    depends_on:
+      - mediamtx1
+      - mediamtx2
     restart: unless-stopped
   # MediaMTX Streaming Server #1
   mediamtx1:
@@ -123,34 +119,9 @@ services:
       - "8189"          # WebRTC TCP
       - "9997"          # Control API
     volumes:
-      - ./mediamtx.yml:/mediamtx.yml
+      - ./mediamtx.yml:/mediamtx.yml    
     networks:
       - vdt-network    
-    labels:
-      - "traefik.enable=true"
-      # RTMP routing
-      - "traefik.tcp.routers.rtmp1.rule=HostSNI(`*`)"
-      - "traefik.tcp.routers.rtmp1.entrypoints=rtmp"
-      - "traefik.tcp.routers.rtmp1.service=rtmp-service"
-      - "traefik.tcp.services.rtmp-service.loadbalancer.server.port=1935"
-      # HLS routing
-      - "traefik.http.routers.hls1.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.hls1.entrypoints=hls"
-      - "traefik.http.routers.hls1.service=hls-service"
-      - "traefik.http.services.hls-service.loadbalancer.server.port=8888"
-      # WHIP routing
-      - "traefik.http.routers.whip1.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.whip1.entrypoints=whip"
-      - "traefik.http.routers.whip1.service=whip-service"
-      - "traefik.http.services.whip-service.loadbalancer.server.port=8889"
-      - "traefik.http.services.whip-service.loadbalancer.sticky.cookie=true"
-      - "traefik.http.services.whip-service.loadbalancer.sticky.cookie.name=whip-session"
-      - "traefik.http.services.whip-service.loadbalancer.sticky.cookie.secure=false"
-      # WebRTC TCP routing
-      - "traefik.tcp.routers.webrtc1.rule=HostSNI(`*`)"
-      - "traefik.tcp.routers.webrtc1.entrypoints=webrtc"
-      - "traefik.tcp.routers.webrtc1.service=webrtc-service"
-      - "traefik.tcp.services.webrtc-service.loadbalancer.server.port=8189"
     deploy:
       resources:
         limits:
@@ -179,34 +150,9 @@ services:
       - "8189"          # WebRTC TCP
       - "9997"          # Control API
     volumes:
-      - ./mediamtx.yml:/mediamtx.yml
+      - ./mediamtx.yml:/mediamtx.yml    
     networks:
       - vdt-network    
-    labels:
-      - "traefik.enable=true"
-      # RTMP routing (same service as mediamtx1)
-      - "traefik.tcp.routers.rtmp2.rule=HostSNI(`*`)"
-      - "traefik.tcp.routers.rtmp2.entrypoints=rtmp"
-      - "traefik.tcp.routers.rtmp2.service=rtmp-service2"
-      - "traefik.tcp.services.rtmp-service2.loadbalancer.server.port=1935"
-      # HLS routing (same service as mediamtx1)
-      - "traefik.http.routers.hls2.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.hls2.entrypoints=hls"
-      - "traefik.http.routers.hls2.service=hls-service2"
-      - "traefik.http.services.hls-service2.loadbalancer.server.port=8888"
-      # WHIP routing (same service as mediamtx1)
-      - "traefik.http.routers.whip2.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.whip2.entrypoints=whip"
-      - "traefik.http.routers.whip2.service=whip-service2"
-      - "traefik.http.services.whip-service2.loadbalancer.server.port=8889"
-      - "traefik.http.services.whip-service2.loadbalancer.sticky.cookie=true"
-      - "traefik.http.services.whip-service2.loadbalancer.sticky.cookie.name=whip-session"
-      - "traefik.http.services.whip-service2.loadbalancer.sticky.cookie.secure=false"
-      # WebRTC TCP routing (same service as mediamtx1)
-      - "traefik.tcp.routers.webrtc2.rule=HostSNI(`*`)"
-      - "traefik.tcp.routers.webrtc2.entrypoints=webrtc"
-      - "traefik.tcp.routers.webrtc2.service=webrtc-service2"
-      - "traefik.tcp.services.webrtc-service2.loadbalancer.server.port=8189"
     deploy:
       resources:
         limits:
