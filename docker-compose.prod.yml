@@ -69,8 +69,7 @@ services:
       - vdt-prod-network
     depends_on:
       - backend
-    restart: always  # MediaMTX Streaming Server
-  mediamtx:
+    restart: always  # MediaMTX Streaming Server  mediamtx:
     build:
       context: .
       dockerfile: Dockerfile.mediamtx
@@ -86,6 +85,14 @@ services:
       - ./mediamtx.yml:/mediamtx.yml
     networks:
       - vdt-prod-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8889/v1/config"]
       interval: 30s

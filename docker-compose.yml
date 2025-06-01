@@ -103,11 +103,19 @@ services:
       - "8888:8888"     # HLS
       - "8889:8889"     # HTTP API
       - "8890:8890/udp" # WebRTC Data
-      - "8189:8189/tcp" # WebRTC Control
+      - "8189:8189/udp" # WebRTC Control
     volumes:
       - ./mediamtx.yml:/mediamtx.yml
     networks:
-      - vdt-network    # healthcheck:
+      - vdt-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 1G
+        reservations:
+          cpus: '0.125'
+          memory: 256M    # healthcheck:
     #   test: ["CMD", "nc", "-z", "localhost", "8889"]
     #   interval: 30s
     #   timeout: 10s
