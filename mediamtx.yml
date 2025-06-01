@@ -73,10 +73,10 @@ authInternalUsers:
 
   # Default administrator.
   # This allows to use API, metrics and PPROF without authentication,
-  # if the IP is localhost.
+  # if the IP is localhost or from Docker network.
 - user: any
   pass:
-  ips: ['127.0.0.1', '::1']
+  ips: ['127.0.0.1', '::1', '172.18.0.0/16']
   permissions:
   - action: api
   - action: metrics
@@ -331,7 +331,7 @@ hlsSegmentDuration: 1s
 # Parts are used in Low-Latency HLS in place of segments.
 # Part duration is influenced by the distance between video/audio samples
 # and is adjusted in order to produce segments with a similar duration.
-hlsPartDuration: 200ms
+hlsPartDuration: 500ms
 # Maximum size of each segment.
 # This prevents RAM exhaustion.
 hlsSegmentMaxSize: 50M
