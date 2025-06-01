@@ -20,9 +20,7 @@ services:
   #     test: ["CMD-SHELL", "pg_isready -U postgres"]
   #     interval: 10s
   #     timeout: 5s
-  #     retries: 5
-
-  # Backend Service
+  #     retries: 5  # Backend Service
   backend:
     build: 
       context: ./backend
@@ -36,7 +34,7 @@ services:
       - SERVER_PORT=8080
       - STREAM_URL_BASE=localhost
     ports:
-      - "8080:8080"
+      - "8080:8080"     # Backend API port
     volumes:
       - backend_uploads:/app/uploads
     # depends_on:
@@ -71,10 +69,8 @@ services:
   #     - vdt-network
   #   depends_on:
   #     - backend
-  #   restart: unless-stopped
-
-  # Frontend Service - Production
-  frontend-prod:
+  #   restart: unless-stopped  # Frontend Service - Production
+  frontend-prod:    
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -91,23 +87,67 @@ services:
       - backend
     restart: unless-stopped
     profiles:
-      - production  # MediaMTX Streaming Server
-  mediamtx:
+      - production  # Traefik Load Balancer
+  traefik:
+    image: traefik:v3.0
+    container_name: vdt-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.rtmp.address=:1935"
+      - "--entrypoints.hls.address=:8888"
+      - "--entrypoints.whip.address=:8889"
+      - "--entrypoints.webrtc.address=:8189"
+    ports:
+      - "8090:8080"     # Traefik Dashboard (moved to avoid backend conflict)
+      - "1935:1935"     # RTMP Load Balancer
+      - "8888:8888"     # HLS Load Balancer
+      - "8889:8889"     # WHIP Load Balancer
+      - "8189:8189"     # WebRTC TCP Load Balancer
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - vdt-network
+    restart: unless-stopped
+
+  # MediaMTX Streaming Server #1
+  mediamtx1:
     build:
       context: .
       dockerfile: Dockerfile.mediamtx
-    container_name: vdt-mediamtx
-    ports:
-      - "8554:8554"     # RTSP
-      - "1935:1935"     # RTMP
-      - "8888:8888"     # HLS
-      - "8889:8889"     # HTTP API
-      - "8890:8890/udp" # WebRTC Data
-      - "8189:8189/udp" # WebRTC Control
+    container_name: vdt-mediamtx1
+    expose:
+      - "1935"          # RTMP
+      - "8888"          # HLS
+      - "8889"          # HTTP API/WHIP
+      - "8189"          # WebRTC TCP
     volumes:
       - ./mediamtx.yml:/mediamtx.yml
     networks:
-      - vdt-network
+      - vdt-network    
+    labels:
+      - "traefik.enable=true"
+      # RTMP routing
+      - "traefik.tcp.routers.rtmp1.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.rtmp1.entrypoints=rtmp"
+      - "traefik.tcp.routers.rtmp1.service=rtmp-service"
+      - "traefik.tcp.services.rtmp-service.loadbalancer.server.port=1935"
+      # HLS routing
+      - "traefik.http.routers.hls1.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.hls1.entrypoints=hls"
+      - "traefik.http.routers.hls1.service=hls-service"
+      - "traefik.http.services.hls-service.loadbalancer.server.port=8888"
+      # WHIP routing
+      - "traefik.http.routers.whip1.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.whip1.entrypoints=whip"
+      - "traefik.http.routers.whip1.service=whip-service"
+      - "traefik.http.services.whip-service.loadbalancer.server.port=8889"
+      # WebRTC TCP routing
+      - "traefik.tcp.routers.webrtc1.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.webrtc1.entrypoints=webrtc"
+      - "traefik.tcp.routers.webrtc1.service=webrtc-service"
+      - "traefik.tcp.services.webrtc-service.loadbalancer.server.port=8189"
     deploy:
       resources:
         limits:
@@ -115,7 +155,57 @@ services:
           memory: 1G
         reservations:
           cpus: '0.125'
-          memory: 256M    # healthcheck:
+          memory: 256M
+    # healthcheck:
+    #   test: ["CMD", "nc", "-z", "localhost", "8889"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 30s
+    restart: unless-stopped
+
+  # MediaMTX Streaming Server #2
+  mediamtx2:
+    build:
+      context: .
+      dockerfile: Dockerfile.mediamtx
+    container_name: vdt-mediamtx2
+    expose:
+      - "1935"          # RTMP
+      - "8888"          # HLS
+      - "8889"          # HTTP API/WHIP
+      - "8189"          # WebRTC TCP
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml
+    networks:
+      - vdt-network    
+    labels:
+      - "traefik.enable=true"
+      # RTMP routing (same service as mediamtx1)
+      - "traefik.tcp.routers.rtmp2.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.rtmp2.entrypoints=rtmp"
+      - "traefik.tcp.routers.rtmp2.service=rtmp-service"
+      # HLS routing (same service as mediamtx1)
+      - "traefik.http.routers.hls2.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.hls2.entrypoints=hls"
+      - "traefik.http.routers.hls2.service=hls-service"
+      # WHIP routing (same service as mediamtx1)
+      - "traefik.http.routers.whip2.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.whip2.entrypoints=whip"
+      - "traefik.http.routers.whip2.service=whip-service"
+      # WebRTC TCP routing (same service as mediamtx1)
+      - "traefik.tcp.routers.webrtc2.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.webrtc2.entrypoints=webrtc"
+      - "traefik.tcp.routers.webrtc2.service=webrtc-service"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 1G
+        reservations:
+          cpus: '0.125'
+          memory: 256M
+    # healthcheck:
     #   test: ["CMD", "nc", "-z", "localhost", "8889"]
     #   interval: 30s
     #   timeout: 10s
