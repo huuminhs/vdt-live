@@ -328,6 +328,24 @@ export function LivePage() {
           try {
             await sender.replaceTrack(newTrack);
             console.log(`Replaced ${trackKind} track in peer connection`);
+            
+            // Set bitrate for video tracks
+            if (trackKind === "video") {
+              try {
+                const params = sender.getParameters();
+                if (!params.encodings) {
+                  params.encodings = [{}];
+                }
+                
+                // Set bitrate to 5 Mbps (5,000,000 bits per second)
+                params.encodings[0].maxBitrate = 5000000;
+                
+                await sender.setParameters(params);
+                console.log("Set video bitrate to 5 Mbps on replaced track");
+              } catch (error) {
+                console.log("Could not set video encoding parameters on replaced track:", error);
+              }
+            }
           } catch (error) {
             console.error(`Error replacing ${trackKind} track:`, error);
           }
@@ -539,25 +557,44 @@ export function LivePage() {
         return null;
       };
 
-      const preferredCodecs = setH264PreferenceOnTransceivers();
-
-      // Add all tracks from the media stream to the peer connection
+      const preferredCodecs = setH264PreferenceOnTransceivers();      // Add all tracks from the media stream to the peer connection
       for (const track of mediaStreamRef.current.getTracks()) {
         console.log(`Adding ${track.kind} track to peer connection`);
         const transceiver = pc.addTransceiver(track, {
           direction: "sendonly",
         });
 
-        // Set H.264 codec preference on video transceivers
-        if (track.kind === "video" && preferredCodecs) {
-          try {
-            transceiver.setCodecPreferences(preferredCodecs);
-            console.log("Set H.264 codec preference on video transceiver");
-          } catch (error) {
-            console.log(
-              "Could not set codec preferences on transceiver:",
-              error
-            );
+        // Set H.264 codec preference and bitrate on video transceivers
+        if (track.kind === "video") {
+          if (preferredCodecs) {
+            try {
+              transceiver.setCodecPreferences(preferredCodecs);
+              console.log("Set H.264 codec preference on video transceiver");
+            } catch (error) {
+              console.log(
+                "Could not set codec preferences on transceiver:",
+                error
+              );
+            }
+          }
+
+          // Set video encoding parameters with 5 Mbps bitrate
+          const sender = transceiver.sender;
+          if (sender) {
+            try {
+              const params = sender.getParameters();
+              if (!params.encodings) {
+                params.encodings = [{}];
+              }
+              
+              // Set bitrate to 5 Mbps (5,000,000 bits per second)
+              params.encodings[0].maxBitrate = 5000000;
+              
+              await sender.setParameters(params);
+              console.log("Set video bitrate to 5 Mbps");
+            } catch (error) {
+              console.log("Could not set video encoding parameters:", error);
+            }
           }
         }
       }
