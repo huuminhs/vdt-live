@@ -9,7 +9,6 @@ import { MyStreamsPage } from './pages/MyStreamsPage'
 import { WatchStreamPage } from './pages/WatchStreamPage'
 import { useAuthStore } from './stores/authStore'
 import { StreamsPage } from './pages/StreamsPage'
-import TestPage from './pages/TestPage'
 import { Toaster } from './components/ui/sonner'
 
 // Root route with the navbar layout
@@ -154,17 +153,10 @@ const watchStreamRoute = createRoute({
   component: () => <WatchStreamPage />
 })
 
-const testRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/test',
-  component: TestPage
-})
-
 // Create the route tree
 const routeTree = rootRoute.addChildren([
   indexRoute,
   aboutRoute,
-  testRoute,
   productsRoute,
   pricingRoute,
   createStreamRoute,  liveStreamRoute,
