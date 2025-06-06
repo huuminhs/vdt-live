@@ -37,7 +37,8 @@ VITE_STREAM_SERVER_URL=https://your-stream-server-domain.com
 ### Backend (Azure App Service) Secrets:
 ```
 AZURE_WEBAPP_NAME=your_azure_webapp_name_here
-AZURE_WEBAPP_PUBLISH_PROFILE=your_azure_publish_profile_content_here
+AZURE_RESOURCE_GROUP=your_azure_resource_group_name
+AZURE_CREDENTIALS=your_azure_service_principal_json
 SPRING_DATASOURCE_URL=jdbc:postgresql://your-db-host:5432/vdt_live
 SPRING_DATASOURCE_USERNAME=your_db_username
 SPRING_DATASOURCE_PASSWORD=your_db_password
@@ -75,6 +76,21 @@ STREAM_URL_BASE=your-stream-server-host
 
 ### Azure Web App Name
 - This is simply the name of your Azure App Service (e.g., `my-app-service`)
+- You can find it in the Azure Portal under your App Service's Overview
+
+### Azure Service Principal (for CLI authentication)
+1. Go to [Azure Portal](https://portal.azure.com/)
+2. Open Azure Cloud Shell (PowerShell or Bash)
+3. Run the following command to create a service principal:
+   ```bash
+   az ad sp create-for-rbac --name "GitHub-Actions-SP" --role contributor --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group} --sdk-auth
+   ```
+4. Replace `{subscription-id}` with your Azure subscription ID
+5. Replace `{resource-group}` with your resource group name
+6. Copy the entire JSON output and use it as the `AZURE_CREDENTIALS` secret
+
+### Azure Resource Group Name
+- This is the name of the Azure Resource Group containing your App Service
 - You can find it in the Azure Portal under your App Service's Overview
 
 ## Deployment Branches
