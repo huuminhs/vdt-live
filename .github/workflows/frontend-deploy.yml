@@ -41,7 +41,8 @@ jobs:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('frontend/pnpm-lock.yaml') }}          
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-      - name: Install dependencies
+            ${{ runner.os }}-pnpm-store-      
+      - name: Install dependencies
         working-directory: ./frontend
         run: pnpm install --no-frozen-lockfile
 
