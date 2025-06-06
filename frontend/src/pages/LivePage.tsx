@@ -200,7 +200,7 @@ export function LivePage() {
   const rtmpUrl = `rtmp://${streamData.streamUrl}/stream/${streamData.streamId}?jwt=${streamData.mediamtxJwt}`;
 
   // Construct WebRTC URL
-  const webrtcUrl = `http://${streamData.streamUrl}:8889/stream/${streamData.streamId}/whip`;
+  const webrtcUrl = `https://${streamData.streamUrl}:8889/stream/${streamData.streamId}/whip`;
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(rtmpUrl);
