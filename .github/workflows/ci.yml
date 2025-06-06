@@ -1,0 +1,136 @@
+name: CI - Continuous Integration
+
+on:
+  push:
+    branches: [ production ]
+  pull_request:
+    branches: [ production ]
+
+jobs:
+  frontend-ci:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'frontend/') || contains(github.event.head_commit.added, 'frontend/') || github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        working-directory: ./frontend
+        run: npx tsc --noEmit
+
+      - name: Run linting
+        working-directory: ./frontend
+        run: pnpm lint      
+      - name: Build project
+        working-directory: ./frontend
+        run: pnpm build
+        env:
+          NODE_ENV: production
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_STREAM_SERVER_URL: ${{ secrets.VITE_STREAM_SERVER_URL }}
+
+  backend-ci:
+    name: Backend CI
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'backend/') || contains(github.event.head_commit.added, 'backend/') || github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('backend/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2      
+      - name: Run tests
+        working-directory: ./backend
+        run: mvn clean test
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          SPRING_JPA_HIBERNATE_DDL_AUTO: ${{ secrets.SPRING_JPA_HIBERNATE_DDL_AUTO }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          STREAM_URL_BASE: ${{ secrets.STREAM_URL_BASE }}
+
+      - name: Generate test report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Backend Tests
+          path: backend/target/surefire-reports/*.xml
+          reporter: java-junit
+          fail-on-error: true      
+      - name: Build with Maven
+        working-directory: ./backend
+        run: mvn clean compile -DskipTests
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          SPRING_JPA_HIBERNATE_DDL_AUTO: ${{ secrets.SPRING_JPA_HIBERNATE_DDL_AUTO }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          STREAM_URL_BASE: ${{ secrets.STREAM_URL_BASE }}}
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'

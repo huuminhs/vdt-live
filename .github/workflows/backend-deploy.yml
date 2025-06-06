@@ -1,0 +1,80 @@
+name: Deploy Backend to Azure App Service
+
+on:
+  push:
+    branches:
+      - production
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches:
+      - production
+    paths:
+      - 'backend/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('backend/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2      
+      - name: Run tests
+        working-directory: ./backend
+        run: mvn clean test
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          SPRING_JPA_HIBERNATE_DDL_AUTO: ${{ secrets.SPRING_JPA_HIBERNATE_DDL_AUTO }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          STREAM_URL_BASE: ${{ secrets.STREAM_URL_BASE }}      
+      - name: Build with Maven
+        working-directory: ./backend
+        run: mvn clean package -DskipTests
+        env:
+          MAVEN_OPTS: -Dmaven.repo.local=~/.m2/repository
+          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          SPRING_JPA_HIBERNATE_DDL_AUTO: ${{ secrets.SPRING_JPA_HIBERNATE_DDL_AUTO }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          STREAM_URL_BASE: ${{ secrets.STREAM_URL_BASE }}      
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-app
+          path: backend/target/*.jar
+          retention-days: 1
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    if: github.ref == 'refs/heads/production'
+    
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: java-app
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: '*.jar'
