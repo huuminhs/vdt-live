@@ -2,9 +2,9 @@ import { useStreams } from "../hooks/useStreams"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
 import type { StreamsResponse } from "@/services/streamService"
-import { StreamCardWithActions } from "@/components/StreamCardWithActions"
 import { useNavigate } from "@tanstack/react-router"
 import Thumbnail from "@/assets/stream.jpg"
+import { StreamCard } from "@/components/StreamCard"
 
 export function StreamsPage() {
   const navigate = useNavigate()
@@ -64,9 +64,8 @@ export function StreamsPage() {
         <>
           {/* Streams Grid */}          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {allStreams.map((stream) => (
-              <StreamCardWithActions
+              <StreamCard
                 key={stream.streamId}
-                streamId={stream.streamId}
                 thumbnail={Thumbnail} // Using placeholder as mentioned
                 title={stream.title}
                 username={stream.creator} // Using creator field from API
