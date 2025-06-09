@@ -150,10 +150,11 @@ export function StreamCardWithActions({
     <>
       <div 
         className="group cursor-pointer transition-transform hover:scale-105"
-        onClick={onClick}
+        
       >
         {/* Stream Thumbnail */}
-        <div className="relative overflow-hidden rounded-lg bg-gray-100">
+        <div className="relative overflow-hidden rounded-lg bg-gray-100" 
+        onClick={onClick}>
           <AspectRatio ratio={16 / 9}>
             <img
               src={thumbnail}
@@ -171,7 +172,8 @@ export function StreamCardWithActions({
         <div className="mt-3 space-y-1">
           {/* Title with Dropdown */}
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-gray-900 line-clamp-2 leading-tight flex-1">
+            <h3 className="font-semibold text-gray-900 line-clamp-2 leading-tight flex-1"
+            onClick={onClick}>
               {title}
             </h3>
             
