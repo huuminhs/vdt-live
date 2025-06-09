@@ -180,7 +180,7 @@ export function LivePage() {
 
   // If no stream data, redirect back to create stream
   if (!streamData) {
-    router.navigate({ to: "/stream/create" });
+    router.navigate({ to: "/stream/mine" });
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card>
