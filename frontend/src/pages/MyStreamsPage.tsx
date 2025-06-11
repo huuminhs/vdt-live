@@ -72,7 +72,7 @@ export function MyStreamsPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          Streams của tôi
+          Live của tôi
         </h1>
         <div className="flex justify-center items-center min-h-[200px]">
           <Loader2 className="h-8 w-8 animate-spin" />
@@ -85,7 +85,7 @@ export function MyStreamsPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          Streams của tôi
+          Live của tôi
         </h1>
         <div className="flex justify-center items-center min-h-[200px]">
           <div className="text-center">
