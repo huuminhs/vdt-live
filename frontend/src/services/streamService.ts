@@ -11,6 +11,10 @@ export interface Stream {
   creator: string
 }
 
+export interface StreamDetailed extends Stream {
+  serverId: number
+}
+
 export interface StreamsResponse {
   items: Stream[]
   nextCursor: string | null
@@ -39,8 +43,8 @@ export interface UpdateStreamRequest {
 }
 
 export const streamService = {
-  async getStreamById(streamId: number): Promise<Stream> {
-    const response = await axios.get<Stream>(
+  async getStreamById(streamId: number): Promise<StreamDetailed> {
+    const response = await axios.get<StreamDetailed>(
       `${API_BASE_URL}/stream/${streamId}`
     )
     

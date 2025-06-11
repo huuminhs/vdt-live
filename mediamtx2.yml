@@ -664,7 +664,7 @@ pathDefaults:
   # * RTSP_PORT: RTSP server port
   # * G1, G2, ...: regular expression groups, if path name is
   #   a regular expression.
-  runOnReady: curl -X PUT http://backend:8080/api/$MTX_PATH/live
+  runOnReady: curl -X PUT http://backend:8080/api/$MTX_PATH/live && curl -X PUT http://backend:8080/api/$MTX_PATH/serverId/2
   # Restart the command if it exits.
   runOnReadyRestart: no
   # Command to run when the stream is not available anymore.

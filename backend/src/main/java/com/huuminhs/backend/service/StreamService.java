@@ -3,6 +3,7 @@ package com.huuminhs.backend.service;
 import com.huuminhs.backend.dto.CreateStreamRequest;
 import com.huuminhs.backend.dto.PaginatedResponse;
 import com.huuminhs.backend.dto.StreamAccessResponse;
+import com.huuminhs.backend.dto.StreamDetailResponse;
 import com.huuminhs.backend.dto.StreamResponse;
 import com.huuminhs.backend.dto.UpdateStreamRequest;
 import com.huuminhs.backend.exception.StreamAccessDeniedException;
@@ -100,12 +101,12 @@ public class StreamService {
         return createPaginatedResponse(streams, limit);
     }
 
-    public StreamResponse getStreamById(Long streamId) {
+    public StreamDetailResponse getStreamById(Long streamId) {
         log.info("Getting stream with ID: {}", streamId);
         Stream stream = streamRepository.findById(streamId)
                 .orElseThrow(() -> new StreamNotFoundException(streamId));
 
-        StreamResponse response = mapToStreamResponse(stream);
+        StreamDetailResponse response = mapToStreamDetailResponse(stream);
         // Set the creator field to the username of the stream's creator
         response.setCreator(stream.getUser().getUsername());
 
@@ -213,12 +214,34 @@ public class StreamService {
         );
     }
 
+    public StreamResponse setStreamServerId(Long streamId, Long serverId) {
+        log.info("Setting serverId {} for stream with ID: {}", serverId, streamId);
+        Stream stream = streamRepository.findById(streamId)
+                .orElseThrow(() -> new StreamNotFoundException(streamId));
+
+        stream.setServerId(serverId);
+        Stream updatedStream = streamRepository.save(stream);
+
+        return mapToStreamResponse(updatedStream);
+    }
+
     private StreamResponse mapToStreamResponse(Stream stream) {
         return new StreamResponse(
                 stream.getId(),
                 stream.getTitle(),
                 stream.getDescription(),
                 stream.getStatus(),
+                stream.getUser().getUsername() // set creator to the username of the stream's creator
+        );
+    }
+
+    private StreamDetailResponse mapToStreamDetailResponse(Stream stream) {
+        return new StreamDetailResponse(
+                stream.getId(),
+                stream.getTitle(),
+                stream.getDescription(),
+                stream.getStatus(),
+                stream.getServerId(),
                 stream.getUser().getUsername() // set creator to the username of the stream's creator
         );
     }

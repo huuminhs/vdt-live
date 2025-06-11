@@ -121,9 +121,9 @@ services:
       - "8888"          # HLS
       - "8889"          # HTTP API/WHIP
       - "8189"          # WebRTC TCP
-      - "9997"          # Control API
+      - "9997"          # Control API    
     volumes:
-      - ./mediamtx.yml:/mediamtx.yml
+      - ./mediamtx1.yml:/mediamtx.yml
     networks:
       - vdt-network    
     labels:
@@ -132,12 +132,15 @@ services:
       - "traefik.tcp.routers.rtmp1.rule=HostSNI(`*`)"
       - "traefik.tcp.routers.rtmp1.entrypoints=rtmp"
       - "traefik.tcp.routers.rtmp1.service=rtmp-service"
-      - "traefik.tcp.services.rtmp-service.loadbalancer.server.port=1935"
-      # HLS routing
-      - "traefik.http.routers.hls1.rule=PathPrefix(`/`)"
+      - "traefik.tcp.services.rtmp-service.loadbalancer.server.port=1935"      # HLS routing - serverId=1
+      - "traefik.http.routers.hls1.rule=PathRegexp(`^/stream/[^/]+/serverId/1(/.*)?$`)"
       - "traefik.http.routers.hls1.entrypoints=hls"
-      - "traefik.http.routers.hls1.service=hls-service"
-      - "traefik.http.services.hls-service.loadbalancer.server.port=8888"
+      - "traefik.http.routers.hls1.service=hls-service1"
+      - "traefik.http.routers.hls1.middlewares=strip-serverid1"
+      - "traefik.http.routers.hls1.priority=100"
+      - "traefik.http.middlewares.strip-serverid1.replacepathregex.regex=^/stream/([^/]+)/serverId/1(/.*)?$"
+      - "traefik.http.middlewares.strip-serverid1.replacepathregex.replacement=/stream/$1$2"
+      - "traefik.http.services.hls-service1.loadbalancer.server.port=8888"
       # WHIP routing
       - "traefik.http.routers.whip1.rule=PathPrefix(`/`)"
       - "traefik.http.routers.whip1.entrypoints=whip"
@@ -177,9 +180,9 @@ services:
       - "8888"          # HLS
       - "8889"          # HTTP API/WHIP
       - "8189"          # WebRTC TCP
-      - "9997"          # Control API
+      - "9997"          # Control API    
     volumes:
-      - ./mediamtx.yml:/mediamtx.yml
+      - ./mediamtx2.yml:/mediamtx.yml
     networks:
       - vdt-network    
     labels:
@@ -188,11 +191,14 @@ services:
       - "traefik.tcp.routers.rtmp2.rule=HostSNI(`*`)"
       - "traefik.tcp.routers.rtmp2.entrypoints=rtmp"
       - "traefik.tcp.routers.rtmp2.service=rtmp-service2"
-      - "traefik.tcp.services.rtmp-service2.loadbalancer.server.port=1935"
-      # HLS routing (same service as mediamtx1)
-      - "traefik.http.routers.hls2.rule=PathPrefix(`/`)"
+      - "traefik.tcp.services.rtmp-service2.loadbalancer.server.port=1935"      # HLS routing - serverId=2
+      - "traefik.http.routers.hls2.rule=PathRegexp(`^/stream/[^/]+/serverId/2(/.*)?$`)"
       - "traefik.http.routers.hls2.entrypoints=hls"
       - "traefik.http.routers.hls2.service=hls-service2"
+      - "traefik.http.routers.hls2.middlewares=strip-serverid2"
+      - "traefik.http.routers.hls2.priority=100"
+      - "traefik.http.middlewares.strip-serverid2.replacepathregex.regex=^/stream/([^/]+)/serverId/2(/.*)?$"
+      - "traefik.http.middlewares.strip-serverid2.replacepathregex.replacement=/stream/$1$2"
       - "traefik.http.services.hls-service2.loadbalancer.server.port=8888"
       # WHIP routing (same service as mediamtx1)
       - "traefik.http.routers.whip2.rule=PathPrefix(`/`)"

@@ -8,6 +8,9 @@ export const config = {
 } as const
 
 // Helper function to get stream watch URL
-export const getStreamWatchUrl = (streamId: string | number): string => {
-  return `${config.streamServerUrl}/stream/${streamId}`
+export const getStreamWatchUrl = (streamId: string | number, serverId: null | number): string => {
+  if (serverId === null) {
+    serverId = 1;
+  }
+  return `${config.streamServerUrl}/stream/${streamId}/serverId/${serverId}/`;
 }

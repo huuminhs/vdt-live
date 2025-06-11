@@ -64,7 +64,8 @@ public class WebSecurityConfig {
                     "/api/stream/live",
                     "/api/stream/ended",
                     "/api/stream/{streamId}/live",
-                    "/api/stream/{streamId}/ended"
+                    "/api/stream/{streamId}/ended",
+                        "/api/stream/{streamId}/serverId/{serverId}"
                 ).permitAll()
                 .anyRequest().authenticated()
             );

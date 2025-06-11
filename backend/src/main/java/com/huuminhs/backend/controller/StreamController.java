@@ -1,10 +1,6 @@
 package com.huuminhs.backend.controller;
 
-import com.huuminhs.backend.dto.CreateStreamRequest;
-import com.huuminhs.backend.dto.PaginatedResponse;
-import com.huuminhs.backend.dto.StreamAccessResponse;
-import com.huuminhs.backend.dto.StreamResponse;
-import com.huuminhs.backend.dto.UpdateStreamRequest;
+import com.huuminhs.backend.dto.*;
 import com.huuminhs.backend.service.StreamService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -55,9 +51,9 @@ public class StreamController {
     }
 
     @GetMapping("/{streamId}")
-    public ResponseEntity<StreamResponse> getStreamById(@PathVariable Long streamId) {
+    public ResponseEntity<StreamDetailResponse> getStreamById(@PathVariable Long streamId) {
         log.info("Getting stream with ID: {}", streamId);
-        StreamResponse stream = streamService.getStreamById(streamId);
+        StreamDetailResponse stream = streamService.getStreamById(streamId);
         return ResponseEntity.ok(stream);
     }
 
@@ -118,6 +114,15 @@ public class StreamController {
             Authentication authentication) {
         log.info("Getting JWT for stream with ID: {}", streamId);
         StreamAccessResponse response = streamService.getStreamJwt(streamId, authentication.getName());
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{streamId}/serverId/{serverId}")
+    public ResponseEntity<StreamResponse> setStreamServerId(
+            @PathVariable Long streamId,
+            @PathVariable Long serverId) {
+        log.info("Setting serverId {} for stream with ID: {}", serverId, streamId);
+        StreamResponse response = streamService.setStreamServerId(streamId, serverId);
         return ResponseEntity.ok(response);
     }
 }
